@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hubris Cup – Admin</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="/assets/js/i18n.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container header">
+      <div class="flex">
+        <span class="badge">Admin</span>
+        <span class="pill" id="eventNameBox">
+          <span data-i18n="eventName"></span>:
+          <input type="text" id="eventName" style="width:220px;margin:0 6px">
+          <button class="ghost" id="saveEventName"><span data-i18n="save"></span></button>
+        </span>
+      </div>
+      <div class="flex">
+        <div class="pill"><span class="status-dot" id="updot"></span> <span id="statusText">Online</span></div>
+        <label class="lang-toggle small">
+          <span data-i18n="locale"></span>:
+          <select id="langSel">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid two">
+      <div class="card">
+        <div class="flex"><strong data-i18n="players"></strong><span class="right small">Status: <span id="status"></span></span></div>
+        <div class="stack" style="margin-top:10px">
+          <div class="flex">
+            <input id="newPlayer" placeholder="Name">
+            <button id="addBtn"><span data-i18n="addPlayer"></span></button>
+            <button id="startBtn" class="right"><span data-i18n="startEvent"></span></button>
+          </div>
+          <ul id="playersList" class="list"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex">
+          <strong>Pods</strong>
+          <div class="right">
+            <button id="podsBtn"><span data-i18n="createPods"></span></button>
+            <button id="r1Btn"><span data-i18n="createR1"></span></button>
+          </div>
+        </div>
+        <div id="podsArea" class="stack"></div>
+      </div>
+    </div>
+
+    <div class="card" id="pairingsCard" style="display:none">
+      <div class="flex">
+        <strong>Pairings <span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
+        <div class="right">
+          <button id="nextRoundBtn"><span data-i18n="nextRound"></span></button>
+          <button id="finalizeBtn"><span data-i18n="finalize"></span></button>
+          <button id="createTop8Btn"><span data-i18n="createTop8"></span></button>
+        </div>
+      </div>
+      <div style="overflow:auto">
+        <table class="table" id="pairingsTbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="table"></th>
+              <th data-i18n="players"></th>
+              <th data-i18n="result"></th>
+              <th data-i18n="actions"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="standingsCard" style="display:none">
+      <div class="flex"><strong data-i18n="standings"></strong></div>
+      <div style="overflow:auto">
+        <table class="table" id="standingsTbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="players"></th>
+              <th data-i18n="points"></th>
+              <th data-i18n="omw"></th>
+              <th data-i18n="gwp"></th>
+              <th data-i18n="ogw"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex"><strong data-i18n="debug"></strong></div>
+      <div class="grid three">
+        <div class="stack">
+          <div class="small" data-i18n="populate"></div>
+          <div class="flex">
+            <input type="number" id="dbgCount" min="1" max="64" value="16" style="width:120px">
+            <button id="dbgPopulate">Go</button>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="small" data-i18n="checkinAll"></div>
+          <button id="dbgCheckin">Go</button>
+        </div>
+        <div class="stack">
+          <div class="small" data-i18n="copyResults"></div>
+          <button id="dbgCopy">Go</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+function applyI18N(){
+  $('[data-i18n]').each(function(){ const k=$(this).data('i18n'); $(this).text(I18N.t(k)); });
+  $('#langSel').val(I18N.lang);
+}
+$('#langSel').on('change', function(){ I18N.setLang(this.value); applyI18N(); });
+document.addEventListener('langchange', applyI18N); applyI18N();
+
+const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), method:'POST', data:data||{}, dataType:'json'});
+
+function ping(){ $('#updot').addClass('green'); setTimeout(()=>$('#updot').removeClass('green'),800); }
+
+function load(){
+  ping();
+  api('get_state', {view:'admin'}).done(render);
+}
+
+function render(res){
+  $('#eventName').val(res.settings.event_name || ('Hubris Cup '+res.year));
+  $('#status').text(res.settings.status);
+  const players = res.players||[];
+  const ul = $('#playersList').empty();
+  players.forEach(p=>{
+    const li = $('<li/>');
+    const left = $('<div/>').text(p.name + (p.pod? ('  (Pod '+p.pod+' S'+p.pod_seat+')') : ''));
+    const right = $('<div class="flex"/>');
+    right.append($('<span/>').addClass('badge '+(p.checked_in?'green':'')).text(p.checked_in?I18N.t('checkedIn'):I18N.t('notCheckedIn')));
+    const del = $('<button class="ghost small-btn"/>').text(I18N.t('remove')).on('click',()=> api('remove_player', {id:p.id}).done(load));
+    right.append(del);
+    li.append(left).append(right);
+    ul.append(li);
+  });
+
+  $('#startBtn').off('click').on('click',()=> api('start_event', {}).done(load));
+  $('#addBtn').off('click').on('click',()=>{
+    const name = $('#newPlayer').val().trim(); if(!name) return;
+    api('add_player',{name}).done(()=>{$('#newPlayer').val(''); load();});
+  });
+
+  $('#saveEventName').off('click').on('click',()=>{
+    api('set_event_name', {event_name: $('#eventName').val()}).done(load);
+  });
+
+  $('#podsBtn').off('click').on('click',()=>{
+    if(players.some(p=>!p.checked_in)){
+      if(!confirm(I18N.t('warningUnchecked'))) return;
+      api('create_pods',{force:1}).done(load);
+    } else {
+      api('create_pods',{}).done(load);
+    }
+  });
+
+  $('#r1Btn').off('click').on('click',()=> api('create_r1',{}).done(load));
+
+  const podsArea = $('#podsArea').empty();
+  (res.pods||[]).forEach(pod=>{
+    const card = $('<div class="card"/>');
+    card.append($('<div/>').html('<strong>Pod '+pod.pod+'</strong> ('+pod.seats.length+')'));
+    const ul2 = $('<ul class="list"/>');
+    pod.seats.forEach(s=>{
+      const li = $('<li/>');
+      li.append($('<div/>').text('S'+s.seat)).append($('<div/>').text(s.name));
+      ul2.append(li);
+    });
+    card.append(ul2);
+    podsArea.append(card);
+  });
+
+  if(res.current_round){
+    $('#pairingsCard').show(); $('#roundNo').text(res.current_round);
+    const tb = $('#pairingsTbl tbody').empty();
+    (res.matches||[]).forEach((m,idx)=>{
+      const tr = $('<tr/>');
+      tr.append($('<td/>').text(idx+1));
+      tr.append($('<td/>').text(m.table_no || '-'));
+      tr.append($('<td/>').text((m.p1_name||'-') + '  vs  ' + (m.p2_name|| (m.is_bye?'(BYE)':'-'))));
+      const resBox = $('<div/>');
+      if(m.p1_game_wins!=null && m.p2_game_wins!=null){
+        resBox.append($('<span/>').text(m.p1_game_wins + ' – ' + m.p2_game_wins));
+        if(m.confirmed) resBox.append(' ✅');
+      } else {
+        resBox.text('—');
+      }
+      tr.append($('<td/>').append(resBox));
+
+      const act = $('<td/>');
+      const editBtn = $('<button class="ghost"/>').text('Edit').on('click', ()=>{
+        const p1 = prompt('Games '+(m.p1_name||'P1')+' won', m.p1_game_wins ?? 2);
+        if(p1===null) return;
+        const p2 = prompt('Games '+(m.p2_name||'P2')+' won', m.p2_game_wins ?? 0);
+        if(p2===null) return;
+        api('admin_edit_result', {match_id:m.id, p1:int(p1), p2:int(p2)}).done(load);
+      });
+      function int(x){ try{return parseInt(x,10)}catch(e){return 0}}
+      act.append(editBtn);
+      if(!m.is_bye){
+        const drop1 = $('<button class="ghost small-btn"/>').text('Drop P1').on('click',()=> api('drop_player',{player_id:m.p1_id}).done(load));
+        act.append(drop1);
+        if(m.p2_id) {
+          const drop2 = $('<button class="ghost small-btn"/>').text('Drop P2').on('click',()=> api('drop_player',{player_id:m.p2_id}).done(load));
+          act.append(drop2);
+        }
+      }
+      tr.append(act);
+      tb.append(tr);
+    });
+
+    $('#nextRoundBtn').off('click').on('click',()=> api('next_round',{}).done(load));
+    $('#finalizeBtn').off('click').on('click',()=> api('finalize_standings',{}).done(load));
+    $('#createTop8Btn').off('click').on('click',()=> api('create_top8',{}).done(load));
+  } else {
+    $('#pairingsCard').hide();
+  }
+
+  if(res.standings && res.standings.length){
+    $('#standingsCard').show();
+    const tb = $('#standingsTbl tbody').empty();
+    res.standings.forEach((r,idx)=>{
+      const tr = $('<tr/>');
+      tr.append($('<td/>').text(idx+1));
+      tr.append($('<td/>').text(r.name));
+      tr.append($('<td/>').text(r.mp));
+      tr.append($('<td/>').text(r.omw.toFixed(3)));
+      tr.append($('<td/>').text(r.gwp.toFixed(3)));
+      tr.append($('<td/>').text(r.ogw.toFixed(3)));
+      tb.append(tr);
+    });
+  } else {
+    $('#standingsCard').hide();
+  }
+
+  // Debug
+  $('#dbgPopulate').off('click').on('click',()=>{
+    const n = parseInt($('#dbgCount').val()||'16',10);
+    api('debug_populate',{n}).done(load);
+  });
+  $('#dbgCheckin').off('click').on('click',()=> api('debug_checkin_remaining',{}).done(load));
+  $('#dbgCopy').off('click').on('click',()=> api('debug_copy_results',{}).done(load));
+}
+
+setInterval(load, 3000);
+load();
+</script>
+</body>
+</html>

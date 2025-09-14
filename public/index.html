@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hubris Cup – Player</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="/assets/js/i18n.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container header">
+      <div><span class="badge">Player</span></div>
+      <div class="flex">
+        <div class="pill"><span class="status-dot" id="updot"></span><span id="statusText">Online</span></div>
+        <label class="lang-toggle small">
+          <span data-i18n="locale"></span>:
+          <select id="langSel">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card center">
+      <div class="huge" id="welcome"></div>
+      <div id="subWelcome" class="small"></div>
+    </div>
+
+    <div id="playerSelect" class="card">
+      <div class="stack">
+        <div><strong data-i18n="selectPlayer"></strong></div>
+        <ul id="playersList" class="list"></ul>
+      </div>
+    </div>
+
+    <div id="checkinCard" class="card" style="display:none">
+      <div class="flex">
+        <div><span class="badge green" id="whoAmI"></span></div>
+        <div class="right"><button class="ghost" id="changePlayerBtn" data-i18n="changePlayer"></button></div>
+      </div>
+      <div class="center" style="margin-top:10px">
+        <button id="checkinBtn" class="btn"><span data-i18n="checkinButton"></span></button>
+      </div>
+      <div class="small center" style="margin-top:10px" data-i18n="dropNote"></div>
+    </div>
+
+    <div id="seatCard" class="card" style="display:none">
+      <div class="center"><div class="huge" id="seatText"></div></div>
+      <div class="small center"><span data-i18n="draftOrder"></span></div>
+      <div id="draftVis" class="draft-table"></div>
+    </div>
+
+    <div id="roundCard" class="card" style="display:none">
+      <div class="flex">
+        <div><strong><span data-i18n="currentRound"></span> <span id="roundNo">1</span></strong></div>
+        <div class="right small"><a href="/admin" target="_blank">Admin</a></div>
+      </div>
+      <div class="grid two" style="margin-top:10px">
+        <div class="card">
+          <div><strong data-i18n="myTable"></strong>: <span id="myTable"></span></div>
+          <div><strong data-i18n="opponent"></strong>: <span id="myOpp"></span></div>
+        </div>
+        <div class="card">
+          <div class="stack">
+            <label><span data-i18n="result"></span> (you – opp)</label>
+            <div class="flex">
+              <input type="number" id="gYou" min="0" max="3" value="2" style="width:80px">
+              <span>:</span>
+              <input type="number" id="gOpp" min="0" max="3" value="0" style="width:80px">
+              <button id="enterBtn"><span data-i18n="enter"></span></button>
+            </div>
+            <div id="oppReported" class="small"></div>
+          </div>
+        </div>
+      </div>
+      <div class="small" data-i18n="dropNote"></div>
+    </div>
+
+    <div id="standingsCard" class="card" style="display:none">
+      <div class="flex">
+        <strong data-i18n="standings"></strong>
+      </div>
+      <div style="overflow:auto">
+        <table class="table" id="standingsTbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="players"></th>
+              <th data-i18n="points"></th>
+              <th data-i18n="omw"></th>
+              <th data-i18n="gwp"></th>
+              <th data-i18n="ogw"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+function applyI18N(){
+  $('#welcome').text(I18N.t('welcome', {YEAR: new Date().getFullYear()}));
+  $('[data-i18n]').each(function(){
+    const k = $(this).data('i18n'); $(this).text(I18N.t(k));
+  });
+  $('#langSel').val(I18N.lang);
+}
+$('#langSel').on('change', function(){ I18N.setLang(this.value); applyI18N(); });
+
+document.addEventListener('langchange', applyI18N);
+applyI18N();
+
+const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), method:'POST', data:data || {}, dataType:'json'});
+
+let me = localStorage.getItem('player_id');
+
+function ping(){
+  $('#updot').addClass('green');
+  setTimeout(()=>$('#updot').removeClass('green'), 800);
+}
+
+function loadState(){
+  ping();
+  api('get_state', {view:'player', me: me || ''}).done(res=>{
+    renderState(res);
+  });
+}
+
+function selectMe(id){
+  me = String(id); localStorage.setItem('player_id', me);
+  loadState();
+}
+
+function renderPlayerSelect(players){
+  const ul = $('#playersList'); ul.empty();
+  players.forEach(p=>{
+    const li = $('<li/>');
+    const left = $('<div/>').text(p.name);
+    const right = $('<div/>');
+    right.append($('<span/>').addClass('badge ' + (p.checked_in?'green':''))
+      .text(p.checked_in ? I18N.t('checkedIn') : I18N.t('notCheckedIn')));
+    li.append(left).append(right);
+    li.css('cursor','pointer').on('click', ()=> selectMe(p.id));
+    ul.append(li);
+  });
+}
+
+function renderSeat(pods, my){
+  if(!my || my.pod==null){ $('#seatCard').hide(); return; }
+  $('#seatCard').show();
+  $('#seatText').text(I18N.t('yourSeat', {POD: my.pod, SEAT: my.pod_seat}));
+  const pod = pods.find(x=>x.pod==my.pod);
+  const seats = pod ? pod.seats : [];
+  const vis = $('#draftVis'); vis.empty().removeClass('cols7 cols6').addClass('draft-table');
+  const cols = Math.max(...seats.map(s=>s.seat));
+  // draw 8 cells grid always; extra cells hidden
+  seats.forEach(s=>{
+    const seat = $('<div/>').addClass('seat').toggleClass('me', s.seat==my.pod_seat);
+    seat.append($('<span/>').addClass('pos').text('S'+s.seat));
+    seat.append($('<span/>').addClass('name').text(s.name));
+    vis.append(seat);
+  });
+}
+
+function renderRound(my, round, match, oppReport){
+  if(!my || !round){ $('#roundCard').hide(); return; }
+  $('#roundCard').show();
+  $('#roundNo').text(round);
+  if(match){
+    $('#myTable').text(match.table_no || '-');
+    const opp = (match.p1_id==my.id)? match.p2_name : match.p1_name;
+    $('#myOpp').text(opp || '-');
+    if(oppReport){
+      $('#oppReported').text('Opponent reported: '+oppReport.p1+'-'+oppReport.p2);
+    } else {
+      $('#oppReported').text('');
+    }
+    $('#enterBtn').off('click').on('click', ()=>{
+      const gy = parseInt($('#gYou').val()||'0',10);
+      const go = parseInt($('#gOpp').val()||'0',10);
+      api('submit_result', {match_id: match.id, reporter_id: my.id, g_you: gy, g_opp: go}).done(loadState);
+    });
+  } else {
+    $('#myTable').text('-'); $('#myOpp').text('-'); $('#oppReported').text('');
+  }
+}
+
+function renderStandings(stand){
+  const tb = $('#standingsTbl tbody'); tb.empty();
+  (stand || []).forEach((r,idx)=>{
+    const tr = $('<tr/>');
+    tr.append($('<td/>').text(idx+1));
+    tr.append($('<td/>').text(r.name));
+    tr.append($('<td/>').text(r.mp));
+    tr.append($('<td/>').text(r.omw.toFixed(3)));
+    tr.append($('<td/>').text(r.gwp.toFixed(3)));
+    tr.append($('<td/>').text(r.ogw.toFixed(3)));
+    tb.append(tr);
+  });
+}
+
+function renderState(res){
+  $('#welcome').text(I18N.t('welcome', {YEAR: res.year}));
+  const st = res.settings;
+  const players = res.players || [];
+  const pods = res.pods || [];
+  if(!me){
+    $('#playerSelect').show();
+    $('#checkinCard,#seatCard,#roundCard,#standingsCard').hide();
+    renderPlayerSelect(players);
+  } else {
+    const my = players.find(p=> String(p.id)===String(me));
+    if(!my){
+      $('#playerSelect').show();
+      $('#checkinCard,#seatCard,#roundCard,#standingsCard').hide();
+      renderPlayerSelect(players);
+      return;
+    }
+    $('#playerSelect').hide();
+    $('#whoAmI').text(my.name);
+    $('#changePlayerBtn').off('click').on('click', ()=>{ localStorage.removeItem('player_id'); me=null; loadState(); });
+    if(!my.checked_in && (st.status==='checkin' || st.status==='pre')){
+      $('#checkinCard').show();
+      $('#seatCard,#roundCard,#standingsCard').hide();
+      $('#checkinBtn').off('click').on('click', ()=> api('check_in', {player_id: my.id, checked:1}).done(loadState));
+    } else {
+      $('#checkinCard').hide();
+      renderSeat(pods, my);
+      const match = res.my_match || null;
+      renderRound(my, res.current_round, match, res.opp_report);
+      if(res.standings && res.standings.length) $('#standingsCard').show(),renderStandings(res.standings); else $('#standingsCard').hide();
+    }
+  }
+}
+
+setInterval(loadState, 3000);
+loadState();
+</script>
+</body>
+</html>
