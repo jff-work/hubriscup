@@ -220,6 +220,7 @@ input,select{background:#0f1318;border:1px solid #1f2a38;color:var(--ink);paddin
 .status-dot.green{background:var(--ok)}
 .status-dot.red{background:var(--bad)}
 .topbar{position:sticky;top:0;background:var(--bg);z-index:10;padding:8px 0;border-bottom:1px solid #1c232d}
+.topbar .badge{position:absolute;left:16px;top:50%;transform:translateY(-50%);z-index:11}
 tfoot td{font-weight:700}
 
 /* Tab Navigation Styles */

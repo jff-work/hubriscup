@@ -46,6 +46,7 @@ function init_schema($pdo){
     p2_id INTEGER,
     p1_game_wins INTEGER,
     p2_game_wins INTEGER,
+    draws INTEGER DEFAULT 0,
     p1_reported INTEGER DEFAULT 0,
     p2_reported INTEGER DEFAULT 0,
     confirmed INTEGER DEFAULT 0,
@@ -62,6 +63,13 @@ function init_schema($pdo){
     $needNoPhone = true;
     foreach($cols as $c){ if($c['name']==='no_phone') $needNoPhone=false; }
     if($needNoPhone){ $pdo->exec("ALTER TABLE players ADD COLUMN no_phone INTEGER DEFAULT 0"); }
+  } catch(Exception $e){}
+  
+  try {
+    $cols = $pdo->query("PRAGMA table_info(matches)")->fetchAll(PDO::FETCH_ASSOC);
+    $needDraws = true;
+    foreach($cols as $c){ if($c['name']==='draws') $needDraws=false; }
+    if($needDraws){ $pdo->exec("ALTER TABLE matches ADD COLUMN draws INTEGER DEFAULT 0"); }
   } catch(Exception $e){}
 
   // Defaults

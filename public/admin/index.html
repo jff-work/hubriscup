@@ -13,15 +13,9 @@
     <div class="container header">
       <div class="flex">
         <span class="badge">Admin</span>
-        <span class="pill" id="eventNameBox">
-          <span data-i18n="eventName"></span>:
-          <input type="text" id="eventName" style="width:220px;margin:0 6px">
-          <button class="ghost" id="saveEventName"><span data-i18n="save"></span></button>
-          <button class="ghost" id="newEventBtn" style="margin-left:10px"><span data-i18n="newEvent"></span></button>
-        </span>
       </div>
       <div class="flex">
-        <div class="pill"><span class="status-dot" id="updot"></span> <span id="statusText">Online</span></div>
+        <button class="ghost" id="newEventBtn"><span data-i18n="newEvent"></span></button>
         <label class="lang-toggle small">
           <span data-i18n="locale"></span>:
           <select id="langSel">
@@ -81,23 +75,22 @@
       <div class="flex">
         <strong>Pairings <span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
       </div>
-      <div class="center" style="margin-top:15px">
-        <button id="nextRoundBtn" class="btn"><span data-i18n="nextRound"></span></button>
-        <button id="finalizeBtn" class="btn"><span data-i18n="finalize"></span></button>
-      </div>
       <div style="overflow:auto; margin-top:15px">
         <table class="table" id="pairingsTbl">
           <thead>
             <tr>
-              <th>#</th>
               <th data-i18n="table"></th>
               <th data-i18n="players"></th>
               <th data-i18n="result"></th>
-              <th data-i18n="actions"></th>
+              <th>Confirmed</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+      <div class="center" style="margin-top:15px">
+        <button id="nextRoundBtn" class="btn"><span data-i18n="createNextRound"></span></button>
+        <button id="finalizeBtn" class="btn"><span data-i18n="finalize"></span></button>
       </div>
     </div>
 
@@ -169,7 +162,7 @@ document.addEventListener('langchange', applyI18N); applyI18N();
 
 const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), method:'POST', data:data||{}, dataType:'json'});
 
-function ping(){ $('#updot').addClass('green'); setTimeout(()=>$('#updot').removeClass('green'),800); }
+function ping(){ /* ping functionality removed */ }
 
 function load(){
   ping();
@@ -177,7 +170,6 @@ function load(){
 }
 
 function render(res){
-  $('#eventName').val(res.settings.event_name || ('Hubris Cup '+res.year));
   $('#status').text(res.settings.status);
   $('#status2').text(res.settings.status);
   const status = res.settings.status;
@@ -214,7 +206,6 @@ function render(res){
     const name = $('#newPlayer2').val().trim(); if(!name) return;
     api('add_player',{name}).done(()=>{$('#newPlayer2').val(''); load();});
   });
-  $('#saveEventName').off('click').on('click',()=> api('set_event_name', {event_name: $('#eventName').val()}).done(load));
   $('#newEventBtn').off('click').on('click',()=>{
     if(confirm(I18N.t('confirmNewEvent'))) {
       api('new_event', {}).done(load);
@@ -494,40 +485,124 @@ function render(res){
     const tb = $('#pairingsTbl tbody').empty();
     (res.matches||[]).forEach((m,idx)=>{
       const tr = $('<tr/>');
-      tr.append($('<td/>').text(idx+1));
       tr.append($('<td/>').text(m.table_no || '-'));
       const nm = (m.p1_name||'-') + '  vs  ' + (m.p2_name || (m.is_bye?'(BYE)':'-'));
       tr.append($('<td/>').text(nm));
-      const resBox = $('<div/>');
+      const resBox = $('<div/>').addClass('result-input-container').css('display', 'flex').css('flex-direction', 'column').css('align-items', 'center');
       if(m.p1_game_wins!=null && m.p2_game_wins!=null){
-        resBox.append($('<span/>').text(m.p1_game_wins + ' – ' + m.p2_game_wins));
-        if(m.confirmed) resBox.append(' ✅');
+        // Show existing result with edit button
+        const inputRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px');
+        const p1Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.p1_game_wins);
+        const p2Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.p2_game_wins);
+        const drawsInput = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.draws || 0);
+        const checkBtn = $('<button class="ghost small-btn"/>').text('✓').on('click', function(){
+          const p1Wins = parseInt(p1Input.val()) || 0;
+          const p2Wins = parseInt(p2Input.val()) || 0;
+          const draws = parseInt(drawsInput.val()) || 0;
+          
+          // Basic validation - prevent obviously invalid results
+          if (p1Wins < 0 || p1Wins > 3 || p2Wins < 0 || p2Wins > 3 || draws < 0 || draws > 3) {
+            alert('Invalid result. All values must be between 0 and 3.');
+            return;
+          }
+          
+          api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+        });
+        
+        inputRow.append(p1Input).append(' – ').append(p2Input).append(' – ').append(drawsInput).append(' ').append(checkBtn);
+        
+        const resultRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px').css('margin-top', '5px');
+        const resultSpan = $('<span/>').text(m.p1_game_wins + ' – ' + m.p2_game_wins + ' – ' + (m.draws || 0));
+        const editBtn = $('<button class="ghost small-btn"/>').html('✏️').css('font-size', '12px').on('click', function(){
+          // Replace with input boxes
+          const container = $(this).closest('.result-input-container');
+          container.empty();
+          
+          const inputRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px');
+          const p1Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.p1_game_wins);
+          const p2Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.p2_game_wins);
+          const drawsInput = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;"/>').val(m.draws || 0);
+          const saveBtn = $('<button class="ghost small-btn"/>').text('✓').on('click', function(){
+            const p1Wins = parseInt(p1Input.val()) || 0;
+            const p2Wins = parseInt(p2Input.val()) || 0;
+            const draws = parseInt(drawsInput.val()) || 0;
+            
+            // Basic validation - prevent obviously invalid results
+            if (p1Wins < 0 || p1Wins > 3 || p2Wins < 0 || p2Wins > 3 || draws < 0 || draws > 3) {
+              alert('Invalid result. All values must be between 0 and 3.');
+              return;
+            }
+            
+            api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+          });
+          const cancelBtn = $('<button class="ghost small-btn"/>').text('✗').on('click', function(){
+            load(); // Reload to show original state
+          });
+          
+          inputRow.append(p1Input).append(' – ').append(p2Input).append(' – ').append(drawsInput).append(' ').append(saveBtn).append(' ').append(cancelBtn);
+          container.append(inputRow);
+        });
+        
+        resultRow.append(resultSpan).append(' ').append(editBtn);
+        resBox.append(inputRow).append(resultRow);
       } else {
-        resBox.text('—');
+        // Show input boxes for entering new result
+        const inputRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px');
+        const p1Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;" placeholder="0"/>');
+        const p2Input = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;" placeholder="0"/>');
+        const drawsInput = $('<input type="number" min="0" max="3" style="width:40px; -moz-appearance: textfield; -webkit-appearance: none; appearance: none;" placeholder="0"/>');
+        const checkBtn = $('<button class="ghost small-btn"/>').text('✓').on('click', function(){
+          const p1Wins = parseInt(p1Input.val()) || 0;
+          const p2Wins = parseInt(p2Input.val()) || 0;
+          const draws = parseInt(drawsInput.val()) || 0;
+          
+          // Basic validation - prevent obviously invalid results
+          if (p1Wins < 0 || p1Wins > 3 || p2Wins < 0 || p2Wins > 3 || draws < 0 || draws > 3) {
+            alert('Invalid result. All values must be between 0 and 3.');
+            return;
+          }
+          
+          api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+        });
+        
+        inputRow.append(p1Input).append(' – ').append(p2Input).append(' – ').append(drawsInput).append(' ').append(checkBtn);
+        resBox.append(inputRow);
       }
       tr.append($('<td/>').append(resBox));
-      const act = $('<td/>');
-      const editBtn = $('<button class="ghost"/>').text('Edit').on('click', ()=>{
-        const p1 = prompt('Games '+(m.p1_name||'P1')+' won', m.p1_game_wins ?? 2);
-        if(p1===null) return;
-        const p2 = prompt('Games '+(m.p2_name||'P2')+' won', m.p2_game_wins ?? 0);
-        if(p2===null) return;
-        function intv(x){ try{return parseInt(x,10)}catch(e){return 0}}
-        api('admin_edit_result', {match_id:m.id, p1:intv(p1), p2:intv(p2)}).done(load);
-      });
-      act.append(editBtn);
-      if(!m.is_bye){
-        const drop1 = $('<button class="ghost small-btn"/>').text('Drop P1').on('click',()=> api('drop_player',{player_id:m.p1_id}).done(load));
-        act.append(drop1);
-        if(m.p2_id) {
-          const drop2 = $('<button class="ghost small-btn"/>').text('Drop P2').on('click',()=> api('drop_player',{player_id:m.p2_id}).done(load));
-          act.append(drop2);
+      
+      // Confirmed column
+      const confirmedCell = $('<td/>');
+      if(m.p1_game_wins!=null && m.p2_game_wins!=null){
+        if(m.confirmed) {
+          confirmedCell.append('✅');
+        } else {
+          const checkbox = $('<input type="checkbox"/>').on('change', function(){
+            api('admin_confirm_result', {match_id: m.id, confirmed: this.checked}).done(load);
+          });
+          confirmedCell.append(checkbox);
         }
+      } else {
+        confirmedCell.text('—');
       }
+      tr.append(confirmedCell);
+      
       tb.append(tr);
     });
 
-    $('#nextRoundBtn').off('click').on('click',()=> api('next_round',{}).done(load));
+    $('#nextRoundBtn').off('click').on('click',()=> {
+      // Check if all matches have results entered
+      const matches = res.matches || [];
+      const incompleteMatches = matches.filter(m => 
+        !m.is_bye && (m.p1_game_wins == null || m.p2_game_wins == null)
+      );
+      
+      if (incompleteMatches.length > 0) {
+        alert('Please enter all match results before creating the next round.');
+        return;
+      }
+      
+      api('next_round',{}).done(load);
+    });
     $('#finalizeBtn').off('click').on('click',()=> api('finalize_standings',{}).done(load));
     $('#createTop8Btn').off('click').on('click',()=> api('create_top8',{}).done(load));
   } else {

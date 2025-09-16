@@ -265,14 +265,15 @@ function standings($upToRound=null){
       
       $g1 = ($m['p1_id']==$pid) ? intval($m['p1_game_wins']) : intval($m['p2_game_wins']);
       $g2 = ($m['p1_id']==$pid) ? intval($m['p2_game_wins']) : intval($m['p1_game_wins']);
+      $draws = intval($m['draws'] ?? 0);
       
       // Match points: 3 for win, 1 for draw, 0 for loss
       if($g1>$g2) $mp[$pid]+=3; 
       elseif($g1==$g2) $mp[$pid]+=1;
       
-      // Game win percentage calculation
+      // Game win percentage calculation (including draws)
       $gamePts += (3*$g1); // 3 points per game won
-      $gamesPlayed += ($g1 + $g2);
+      $gamesPlayed += ($g1 + $g2 + $draws);
       
       // Track opponents (exclude byes from OMW/OGW)
       $opp = ($m['p1_id']==$pid) ? $m['p2_id'] : $m['p1_id'];

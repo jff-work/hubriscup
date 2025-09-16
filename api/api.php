@@ -57,6 +57,7 @@ switch($a){
           'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name'],
           'p1_game_wins'=>$m['p1_game_wins']!==null?intval($m['p1_game_wins']):null,
           'p2_game_wins'=>$m['p2_game_wins']!==null?intval($m['p2_game_wins']):null,
+          'draws'=>$m['draws']!==null?intval($m['draws']):null,
           'confirmed'=>intval($m['confirmed'])==1,
           'is_bye'=>intval($m['is_bye'])==1,
           'pod_round'=>intval($m['pod_round'])==1,
@@ -76,7 +77,8 @@ switch($a){
             'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name'],
             'confirmed'=>intval($m['confirmed'])==1,
             'p1_reported'=>intval($m['p1_reported'])==1,
-            'p2_reported'=>intval($m['p2_reported'])==1
+            'p2_reported'=>intval($m['p2_reported'])==1,
+            'is_bye'=>intval($m['is_bye'])==1
           ];
           
           // Determine match state for this player
@@ -103,8 +105,9 @@ switch($a){
               $oppReportedResult = [
                 'you'=>intval($m['p1_game_wins']), 
                 'opp'=>intval($m['p2_game_wins']),
+                'draws'=>intval($m['draws'] ?? 0),
                 'opponent_name'=>isset($m['p2_name']) ? $m['p2_name'] : 'Unknown',
-                'opponent_original'=>intval($m['p1_game_wins']) . '-' . intval($m['p2_game_wins'])
+                'opponent_original'=>intval($m['p1_game_wins']) . '-' . intval($m['p2_game_wins']) . '-' . intval($m['draws'] ?? 0)
               ];
             } else {
               // I'm P2, opponent is P1
@@ -113,8 +116,9 @@ switch($a){
               $oppReportedResult = [
                 'you'=>intval($m['p2_game_wins']), 
                 'opp'=>intval($m['p1_game_wins']),
+                'draws'=>intval($m['draws'] ?? 0),
                 'opponent_name'=>isset($m['p1_name']) ? $m['p1_name'] : 'Unknown',
-                'opponent_original'=>intval($m['p2_game_wins']) . '-' . intval($m['p1_game_wins'])
+                'opponent_original'=>intval($m['p2_game_wins']) . '-' . intval($m['p1_game_wins']) . '-' . intval($m['draws'] ?? 0)
               ];
             }
           }
@@ -195,6 +199,7 @@ switch($a){
     $rid = intv($_POST['reporter_id'] ?? 0);
     $gy = intv($_POST['g_you'] ?? 0);
     $go = intv($_POST['g_opp'] ?? 0);
+    $gd = intv($_POST['g_draws'] ?? 0);
     $m = one("SELECT * FROM matches WHERE id=?", [$mid]);
     if(!$m) j(['ok'=>false,'error'=>'no match']);
     if($m['is_bye']) j(['ok'=>false,'error'=>'bye match']);
@@ -209,15 +214,15 @@ switch($a){
     
     // If this is a change (opponent already reported), reset the other player's report
     if($isP1 && intval($m['p2_reported'])==1){
-      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, p2_reported=0, confirmed=0, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
+      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, draws=?, p1_reported=1, p2_reported=0, confirmed=0, updated_at=? WHERE id=?", [$gy,$go,$gd,date('c'),$mid]);
     } elseif($isP2 && intval($m['p1_reported'])==1){
-      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=0, p2_reported=1, confirmed=0, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
+      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, draws=?, p1_reported=0, p2_reported=1, confirmed=0, updated_at=? WHERE id=?", [$go,$gy,$gd,date('c'),$mid]);
     } else {
       // First report
       if($isP1){
-        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
+        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, draws=?, p1_reported=1, updated_at=? WHERE id=?", [$gy,$go,$gd,date('c'),$mid]);
       } else {
-        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p2_reported=1, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
+        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, draws=?, p2_reported=1, updated_at=? WHERE id=?", [$go,$gy,$gd,date('c'),$mid]);
       }
     }
     j(['ok'=>true]);
@@ -249,7 +254,8 @@ switch($a){
     $mid = intv($_POST['match_id'] ?? 0);
     $p1 = intv($_POST['p1'] ?? 0);
     $p2 = intv($_POST['p2'] ?? 0);
-    q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, p2_reported=1, confirmed=1, updated_at=? WHERE id=?", [$p1,$p2,date('c'),$mid]);
+    $draws = intv($_POST['draws'] ?? 0);
+    q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, draws=?, p1_reported=1, p2_reported=1, confirmed=1, updated_at=? WHERE id=?", [$p1,$p2,$draws,date('c'),$mid]);
     j(['ok'=>true]);
     break;
 

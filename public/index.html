@@ -91,11 +91,14 @@
             <div class="result-labels">
               <div class="result-label">You</div>
               <div class="result-label">Opponent</div>
+              <div class="result-label">Draws</div>
             </div>
             <div class="result-inputs">
-              <input type="number" id="gYou" min="0" max="2" value="2" class="result-input">
+              <input type="number" id="gYou" min="0" max="3" value="2" class="result-input">
               <span class="result-separator">:</span>
-              <input type="number" id="gOpp" min="0" max="2" value="0" class="result-input">
+              <input type="number" id="gOpp" min="0" max="3" value="0" class="result-input">
+              <span class="result-separator">:</span>
+              <input type="number" id="gDraws" min="0" max="3" value="0" class="result-input">
             </div>
             <div class="result-actions">
               <button id="confirmBtn" class="btn result-btn confirm-btn" style="display:none">Confirm Result</button>
@@ -453,7 +456,7 @@ function renderRound(my, round, match, matchState, oppReport){
   $('#roundNo').text(round);
   if(match){
     $('#myTable').text(match.table_no || '-');
-    const opp = (match.p1_id==my.id)? match.p2_name : match.p1_name;
+    const opp = match.is_bye ? 'Bye' : ((match.p1_id==my.id)? match.p2_name : match.p1_name);
     $('#myOpp').text(opp || '-');
     
     const isManual = !!my.no_phone;
@@ -472,33 +475,35 @@ function renderRound(my, round, match, matchState, oppReport){
     if (matchState && matchState.confirmed) {
       // Result is confirmed - show final state
       $('#resultConfirmed').show();
-      $('#gYou, #gOpp').prop('disabled', true);
+      $('#gYou, #gOpp, #gDraws').prop('disabled', true);
     } else if (matchState && matchState.opponent_reported && !matchState.i_reported) {
       // Opponent reported but I haven't - show confirm dialog
       $('#opponentReportedMessage').show();
       $('#opponentName').text(oppReport.opponent_name || 'Unknown');
-      $('#opponentResult').text(oppReport.opponent_original || '0-0');
+      $('#opponentResult').text(oppReport.opponent_original || '0-0-0');
       $('#gYou').val(oppReport.you || 0).prop('disabled', true);
       $('#gOpp').val(oppReport.opp || 0).prop('disabled', true);
+      $('#gDraws').val(oppReport.draws || 0).prop('disabled', true);
       $('#confirmBtn').show();
     } else if (matchState && matchState.i_reported && matchState.opponent_reported) {
       // Both players have reported, show opponent's result for confirmation
       $('#opponentReportedMessage').show();
       $('#opponentName').text(oppReport.opponent_name || 'Unknown');
-      $('#opponentResult').text(oppReport.opponent_original || '0-0');
+      $('#opponentResult').text(oppReport.opponent_original || '0-0-0');
       $('#gYou').val(oppReport.you || 0).prop('disabled', true);
       $('#gOpp').val(oppReport.opp || 0).prop('disabled', true);
+      $('#gDraws').val(oppReport.draws || 0).prop('disabled', true);
       $('#confirmBtn').show();
       $('#changeBtn').show(); // I can change my result
     } else if (matchState && matchState.i_reported) {
       // I reported, waiting for opponent
       $('#waitingMessage').show();
-      $('#gYou, #gOpp').prop('disabled', true);
+      $('#gYou, #gOpp, #gDraws').prop('disabled', true);
       $('#changeBtn').show(); // I can change my result
     } else {
       // No one has reported yet - show entry form
       $('#enterBtn').show();
-      $('#gYou, #gOpp').prop('disabled', false);
+      $('#gYou, #gOpp, #gDraws').prop('disabled', false);
     }
     
     // Enter button handler (for initial report)
@@ -507,23 +512,21 @@ function renderRound(my, round, match, matchState, oppReport){
       
       const gy = parseInt($('#gYou').val()||'0',10);
       const go = parseInt($('#gOpp').val()||'0',10);
+      const gd = parseInt($('#gDraws').val()||'0',10);
       
-      // Validate result - only allow: 1-0, 2-1, 2-0, 1-1
-      const validResults = [
-        {you: 1, opp: 0},
-        {you: 2, opp: 1},
-        {you: 2, opp: 0},
-        {you: 1, opp: 1}
-      ];
-      
-      const isValidResult = validResults.some(result => result.you === gy && result.opp === go);
-      
-      if (!isValidResult) {
-        alert('Invalid result. Valid results are: 1-0, 2-1, 2-0, 1-1');
+      // Validate result - must have at least 1 game and total games must be reasonable
+      const totalGames = gy + go + gd;
+      if (totalGames < 1 || totalGames > 5) {
+        alert('Invalid result. Total games must be between 1 and 5.');
         return;
       }
       
-      api('submit_result', {match_id: match.id, reporter_id: my.id, g_you: gy, g_opp: go}).done(()=>{
+      if (gy < 0 || go < 0 || gd < 0) {
+        alert('Invalid result. All values must be 0 or positive.');
+        return;
+      }
+      
+      api('submit_result', {match_id: match.id, reporter_id: my.id, g_you: gy, g_opp: go, g_draws: gd}).done(()=>{
         loadState();
       }).fail(()=>{
         alert('Failed to submit result. Please try again.');
@@ -546,7 +549,7 @@ function renderRound(my, round, match, matchState, oppReport){
       if(isManual) return;
       
       // Reset to entry mode
-      $('#gYou, #gOpp').prop('disabled', false);
+      $('#gYou, #gOpp, #gDraws').prop('disabled', false);
       $('#gYou').val('2');
       $('#gOpp').val('0');
       $('#enterBtn').show();
