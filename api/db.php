@@ -19,6 +19,7 @@ function db(){
 }
 
 function init_schema($pdo){
+  // Migrations: ensure added columns exist
   $pdo->exec("
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
@@ -34,7 +35,8 @@ function init_schema($pdo){
     pod_seat INTEGER DEFAULT NULL,
     top8_seat INTEGER DEFAULT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    no_phone INTEGER DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS matches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,6 +56,14 @@ function init_schema($pdo){
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
   ");
+  // Backfill/migrate columns if needed
+  try {
+    $cols = $pdo->query("PRAGMA table_info(players)")->fetchAll(PDO::FETCH_ASSOC);
+    $needNoPhone = true;
+    foreach($cols as $c){ if($c['name']==='no_phone') $needNoPhone=false; }
+    if($needNoPhone){ $pdo->exec("ALTER TABLE players ADD COLUMN no_phone INTEGER DEFAULT 0"); }
+  } catch(Exception $e){}
+
   // Defaults
   set_setting('status', get_setting('status') ?: 'pre');
   set_setting('event_name', get_setting('event_name') ?: ('Hubris Cup '.date('Y')));

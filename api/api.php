@@ -7,7 +7,6 @@ require_once __DIR__.'/logic.php';
 $a = $_GET['a'] ?? $_POST['a'] ?? 'get_state';
 
 function j($x){ echo json_encode($x); exit; }
-
 function intv($x){ return intval($x); }
 
 switch($a){
@@ -22,10 +21,8 @@ switch($a){
       'locale'=> get_setting('locale'),
       'debug_mode'=> intval(get_setting('debug_mode')),
     ];
-    $players = all("SELECT id,name,checked_in,active,dropped,pod,pod_seat,top8_seat FROM players WHERE active=1 ORDER BY id ASC");
-    // Pods
-    $pods=[];
-    $rows = all("SELECT DISTINCT pod FROM players WHERE pod IS NOT NULL ORDER BY pod ASC");
+    $players = all("SELECT id,name,checked_in,active,dropped,pod,pod_seat,top8_seat,no_phone FROM players WHERE active=1 ORDER BY id ASC");
+    $pods=[]; $rows = all("SELECT DISTINCT pod FROM players WHERE pod IS NOT NULL ORDER BY pod ASC");
     foreach($rows as $r){
       $seats = all("SELECT id,name,pod,pod_seat FROM players WHERE pod=? ORDER BY pod_seat ASC", [$r['pod']]);
       $pods[] = ['pod'=>intval($r['pod']),'seats'=>array_map(function($s){ return ['id'=>intval($s['id']),'name'=>$s['name'],'pod'=>intval($s['pod']),'seat'=>intval($s['pod_seat'])]; }, $seats)];
@@ -33,7 +30,7 @@ switch($a){
     $cur = intval(get_setting('current_round'));
     $matches = $cur>0 ? round_matches($cur) : [];
     $stand = [];
-    if(get_setting('status')=='standings' || get_setting('status')=='round' || get_setting('status')=='top8' || get_setting('status')=='complete'){
+    if(in_array(get_setting('status'), ['standings','round','top8','complete'])){
       $stand = standings(null);
     }
 
@@ -45,7 +42,8 @@ switch($a){
         'active'=>intval($p['active'])==1,'dropped'=>intval($p['dropped'])==1,
         'pod'=>$p['pod']!==null? intval($p['pod']) : null,
         'pod_seat'=>$p['pod_seat']!==null? intval($p['pod_seat']) : null,
-        'top8_seat'=>$p['top8_seat']!==null? intval($p['top8_seat']) : null
+        'top8_seat'=>$p['top8_seat']!==null? intval($p['top8_seat']) : null,
+        'no_phone'=>intval($p['no_phone'])==1
       ]; }, $players),
       'pods'=> $pods,
       'current_round'=> $cur>0?$cur:null,
@@ -68,7 +66,6 @@ switch($a){
       'standings'=> $stand
     ];
 
-    // Player-specific helper
     if($me){
       $payload['my_match'] = null;
       foreach($matches as $m){
@@ -78,7 +75,6 @@ switch($a){
             'p1_id'=>$m['p1_id']!==null?intval($m['p1_id']):null,'p2_id'=>$m['p2_id']!==null?intval($m['p2_id']):null,
             'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name']
           ];
-          // Also include opponent's report if exists
           $oppReported = null;
           if(intval($m['p1_id'])==$me && intval($m['p2_reported'])==1 && $m['p2_game_wins']!==null){
             $oppReported = ['p1'=>intval($m['p1_game_wins']??0),'p2'=>intval($m['p2_game_wins']??0)];
@@ -122,6 +118,17 @@ switch($a){
     j(['ok'=>true]);
     break;
 
+  case 'new_event':
+    // Clear all data and reset to preparation stage
+    q("DELETE FROM players");
+    q("DELETE FROM matches");
+    set_setting('status','pre');
+    set_setting('current_round','0');
+    set_setting('total_rounds','0');
+    set_setting('event_name','Hubris Cup '.date('Y'));
+    j(['ok'=>true]);
+    break;
+
   case 'check_in':
     $pid = intv($_POST['player_id'] ?? 0);
     $checked = intv($_POST['checked'] ?? 1);
@@ -129,17 +136,17 @@ switch($a){
     j(['ok'=>true]);
     break;
 
+  case 'admin_checkin_no_phone':
+    $pid = intv($_POST['player_id'] ?? 0);
+    q("UPDATE players SET checked_in=1, no_phone=1, updated_at=? WHERE id=?", [date('c'), $pid]);
+    j(['ok'=>true]);
+    break;
+
   case 'create_pods':
     $force = intv($_POST['force'] ?? 0);
-    if($force==1){
-      // Drop unchecked players
-      q("DELETE FROM players WHERE checked_in=0");
-    }
+    if($force==1){ q("DELETE FROM players WHERE checked_in=0"); }
     $res = assign_pods();
-    if($res['ok']){
-      // compute total rounds now based on #checked-in
-      set_setting('total_rounds', compute_total_rounds());
-    }
+    if($res['ok']){ set_setting('total_rounds', compute_total_rounds()); }
     j($res);
     break;
 
@@ -158,17 +165,15 @@ switch($a){
     $isP1 = ($m['p1_id']==$rid);
     $isP2 = ($m['p2_id']==$rid);
     if(!$isP1 && !$isP2) j(['ok'=>false,'error'=>'not your match']);
+    $rp = one("SELECT no_phone FROM players WHERE id=?", [$rid]);
+    if($rp && intval($rp['no_phone'])==1){ j(['ok'=>false,'error'=>'manual_only']); }
     if($isP1){
       q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
     } else {
       q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p2_reported=1, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
     }
-    // try confirm if both reported and consistent
     $m = one("SELECT * FROM matches WHERE id=?", [$mid]);
     if(intval($m['p1_reported'])==1 && intval($m['p2_reported'])==1 && $m['p1_game_wins']!==null && $m['p2_game_wins']!==null){
-      // confirm only if numbers sum consistently
-      $sum1 = intval($m['p1_game_wins']); $sum2 = intval($m['p2_game_wins']);
-      // Accept any numbers (players may have drawn); Admin can always override
       q("UPDATE matches SET confirmed=1 WHERE id=?", [$mid]);
     }
     j(['ok'=>true]);
@@ -191,15 +196,9 @@ switch($a){
   case 'next_round':
     $cur = intv(get_setting('current_round'));
     $status = get_setting('status');
-    if($status=='top8'){
-      j(advance_top8());
-      break;
-    }
-    // ensure all matches confirmed
+    if($status=='top8'){ j(advance_top8()); break; }
     $un = one("SELECT COUNT(*) AS c FROM matches WHERE round=? AND confirmed=0", [$cur]);
-    if($un && intval($un['c'])>0){
-      j(['ok'=>false,'error'=>'not all results confirmed']); break;
-    }
+    if($un && intval($un['c'])>0){ j(['ok'=>false,'error'=>'not all results confirmed']); break; }
     $total = intv(get_setting('total_rounds'));
     if($cur >= $total){
       set_setting('status','standings');
@@ -222,16 +221,9 @@ switch($a){
   /** Debug helpers **/
   case 'debug_populate':
     $n = intv($_POST['n'] ?? 16);
-    q("DELETE FROM players");
-    q("DELETE FROM matches");
-    set_setting('status','pre');
-    set_setting('current_round','0');
-    set_setting('total_rounds','0');
-    $names = [];
-    for($i=1;$i<=$n;$i++) $names[] = 'Spieler '.$i;
-    foreach($names as $nm){
-      q("INSERT INTO players (name,checked_in,active) VALUES (?,0,1)", [$nm]);
-    }
+    q("DELETE FROM players"); q("DELETE FROM matches");
+    set_setting('status','pre'); set_setting('current_round','0'); set_setting('total_rounds','0');
+    for($i=1;$i<=$n;$i++){ q("INSERT INTO players (name,checked_in,active) VALUES (?,0,1)", ['Spieler '.$i]); }
     j(['ok'=>true,'n'=>$n]);
     break;
 
@@ -244,15 +236,30 @@ switch($a){
     $cur = intv(get_setting('current_round'));
     $rows = all("SELECT * FROM matches WHERE round=? AND confirmed=0", [$cur]);
     foreach($rows as $m){
-      if($m['is_bye']){
+      if(intval($m['is_bye'])==1){
         q("UPDATE matches SET confirmed=1, p1_game_wins=2, p2_game_wins=0 WHERE id=?", [$m['id']]);
         continue;
       }
+      // Copy results from the reported side to auto-confirm
       if(intval($m['p1_reported'])==1 && intval($m['p2_reported'])==0 && $m['p1_game_wins']!==null){
         q("UPDATE matches SET p2_game_wins=?, p2_reported=1, confirmed=1 WHERE id=?", [$m['p2_game_wins'],$m['id']]);
       } elseif(intval($m['p2_reported'])==1 && intval($m['p1_reported'])==0 && $m['p2_game_wins']!==null){
         q("UPDATE matches SET p1_game_wins=?, p1_reported=1, confirmed=1 WHERE id=?", [$m['p1_game_wins'],$m['id']]);
       }
+    }
+    j(['ok'=>true]);
+    break;
+
+  case 'debug_randomize_results':
+    $cur = intv(get_setting('current_round'));
+    $rows = all("SELECT * FROM matches WHERE round=? AND confirmed=0", [$cur]);
+    foreach($rows as $m){
+      if(intval($m['is_bye'])==1){
+        q("UPDATE matches SET confirmed=1, p1_game_wins=2, p2_game_wins=0 WHERE id=?", [$m['id']]);
+        continue;
+      }
+      $opts = [[2,0],[2,1],[1,2],[0,2]]; $r = $opts[array_rand($opts)];
+      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, p2_reported=1, confirmed=1 WHERE id=?", [$r[0],$r[1],$m['id']]);
     }
     j(['ok'=>true]);
     break;

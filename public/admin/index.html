@@ -8,7 +8,7 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="/assets/js/i18n.js"></script>
 </head>
-<body>
+<body class="admin">
   <div class="topbar">
     <div class="container header">
       <div class="flex">
@@ -17,6 +17,7 @@
           <span data-i18n="eventName"></span>:
           <input type="text" id="eventName" style="width:220px;margin:0 6px">
           <button class="ghost" id="saveEventName"><span data-i18n="save"></span></button>
+          <button class="ghost" id="newEventBtn" style="margin-left:10px"><span data-i18n="newEvent"></span></button>
         </span>
       </div>
       <div class="flex">
@@ -33,41 +34,58 @@
   </div>
 
   <div class="container">
-    <div class="grid two">
-      <div class="card">
-        <div class="flex"><strong data-i18n="players"></strong><span class="right small">Status: <span id="status"></span></span></div>
-        <div class="stack" style="margin-top:10px">
-          <div class="flex">
-            <input id="newPlayer" placeholder="Name">
-            <button id="addBtn"><span data-i18n="addPlayer"></span></button>
-            <button id="startBtn" class="right"><span data-i18n="startEvent"></span></button>
-          </div>
-          <ul id="playersList" class="list"></ul>
-        </div>
-      </div>
-
-      <div class="card">
+    <!-- Preparation Stage -->
+    <div id="preparationStage" class="card" style="display:none">
+      <div class="flex"><strong data-i18n="players"></strong><span class="right small">Status: <span id="status"></span></span></div>
+      <div class="legend" id="legendNoPhoneAdmin" data-i18n="noPhoneExplain"></div>
+      <div class="stack" style="margin-top:10px">
         <div class="flex">
-          <strong>Pods</strong>
-          <div class="right">
-            <button id="podsBtn"><span data-i18n="createPods"></span></button>
-            <button id="r1Btn"><span data-i18n="createR1"></span></button>
-          </div>
+          <input id="newPlayer" placeholder="Name">
+          <button id="addBtn"><span data-i18n="addPlayer"></span></button>
         </div>
-        <div id="podsArea" class="stack"></div>
+        <div class="center" style="margin-top:15px">
+          <button id="startBtn" class="btn"><span data-i18n="startEvent"></span></button>
+        </div>
+        <ul id="playersList" class="list"></ul>
       </div>
     </div>
 
+    <!-- Check-in Stage -->
+    <div id="checkinStage" class="card" style="display:none">
+      <div class="flex"><strong data-i18n="players"></strong><span class="right small">Status: <span id="status2"></span></span></div>
+      <div class="legend" id="legendNoPhoneAdmin2" data-i18n="noPhoneExplain"></div>
+      <div class="stack" style="margin-top:10px">
+        <div class="flex">
+          <input id="newPlayer2" placeholder="Name">
+          <button id="addBtn2"><span data-i18n="addPlayer"></span></button>
+        </div>
+        <div class="center" style="margin-top:15px">
+          <button id="podsBtn" class="btn"><span data-i18n="createPods"></span></button>
+        </div>
+        <ul id="playersList2" class="list"></ul>
+      </div>
+    </div>
+
+    <!-- Pods Stage -->
+    <div id="podsStage" class="card" style="display:none">
+      <div class="flex"><strong>Pods</strong></div>
+      <div id="draftVisuals" class="stack" style="margin-top:15px"></div>
+      <div id="podsArea" class="stack" style="margin-top:15px"></div>
+      <div class="center" style="margin-top:15px">
+        <button id="r1Btn" class="btn"><span data-i18n="createR1"></span></button>
+      </div>
+    </div>
+
+    <!-- Rounds Stage -->
     <div class="card" id="pairingsCard" style="display:none">
       <div class="flex">
         <strong>Pairings <span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
-        <div class="right">
-          <button id="nextRoundBtn"><span data-i18n="nextRound"></span></button>
-          <button id="finalizeBtn"><span data-i18n="finalize"></span></button>
-          <button id="createTop8Btn"><span data-i18n="createTop8"></span></button>
-        </div>
       </div>
-      <div style="overflow:auto">
+      <div class="center" style="margin-top:15px">
+        <button id="nextRoundBtn" class="btn"><span data-i18n="nextRound"></span></button>
+        <button id="finalizeBtn" class="btn"><span data-i18n="finalize"></span></button>
+      </div>
+      <div style="overflow:auto; margin-top:15px">
         <table class="table" id="pairingsTbl">
           <thead>
             <tr>
@@ -83,6 +101,7 @@
       </div>
     </div>
 
+    <!-- Standings Stage -->
     <div class="card" id="standingsCard" style="display:none">
       <div class="flex"><strong data-i18n="standings"></strong></div>
       <div style="overflow:auto">
@@ -99,6 +118,14 @@
           </thead>
           <tbody></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Top 8 Creation Stage -->
+    <div class="card" id="top8CreationCard" style="display:none">
+      <div class="flex"><strong>Create Top 8</strong></div>
+      <div class="center" style="margin-top:15px">
+        <button id="createTop8Btn" class="btn"><span data-i18n="createTop8"></span></button>
       </div>
     </div>
 
@@ -119,6 +146,14 @@
         <div class="stack">
           <div class="small" data-i18n="copyResults"></div>
           <button id="dbgCopy">Go</button>
+        </div>
+        <div class="stack">
+          <div class="small" data-i18n="randomize"></div>
+          <button id="dbgRandom">Go</button>
+        </div>
+        <div class="stack">
+          <div class="small" data-i18n="newEvent"></div>
+          <button id="dbgNewEvent" class="secondary">Reset All</button>
         </div>
       </div>
     </div>
@@ -144,29 +179,49 @@ function load(){
 function render(res){
   $('#eventName').val(res.settings.event_name || ('Hubris Cup '+res.year));
   $('#status').text(res.settings.status);
+  $('#status2').text(res.settings.status);
+  const status = res.settings.status;
   const players = res.players||[];
+
+  function show(id, on){ $(id).toggle(!!on); }
+
+  // Players - handle both preparation and check-in stages
   const ul = $('#playersList').empty();
+  const ul2 = $('#playersList2').empty();
   players.forEach(p=>{
     const li = $('<li/>');
     const left = $('<div/>').text(p.name + (p.pod? ('  (Pod '+p.pod+' S'+p.pod_seat+')') : ''));
     const right = $('<div class="flex"/>');
-    right.append($('<span/>').addClass('badge '+(p.checked_in?'green':'')).text(p.checked_in?I18N.t('checkedIn'):I18N.t('notCheckedIn')));
+    right.append($('<span/>').addClass('badge '+(p.no_phone?'orange':(p.checked_in?'green':''))).text(p.no_phone?I18N.t('noPhone'):(p.checked_in?I18N.t('checkedIn'):I18N.t('notCheckedIn'))));
     const del = $('<button class="ghost small-btn"/>').text(I18N.t('remove')).on('click',()=> api('remove_player', {id:p.id}).done(load));
     right.append(del);
+    if(status==='checkin' && !p.checked_in){
+      const np = $('<button class="ghost small-btn"/>').text('no-phone manual checkin').on('click',()=> api('admin_checkin_no_phone',{player_id:p.id}).done(load));
+      right.append(np);
+    }
     li.append(left).append(right);
-    ul.append(li);
+    ul.append(li.clone());
+    ul2.append(li);
   });
 
+  // Controls
   $('#startBtn').off('click').on('click',()=> api('start_event', {}).done(load));
   $('#addBtn').off('click').on('click',()=>{
     const name = $('#newPlayer').val().trim(); if(!name) return;
     api('add_player',{name}).done(()=>{$('#newPlayer').val(''); load();});
   });
-
-  $('#saveEventName').off('click').on('click',()=>{
-    api('set_event_name', {event_name: $('#eventName').val()}).done(load);
+  $('#addBtn2').off('click').on('click',()=>{
+    const name = $('#newPlayer2').val().trim(); if(!name) return;
+    api('add_player',{name}).done(()=>{$('#newPlayer2').val(''); load();});
+  });
+  $('#saveEventName').off('click').on('click',()=> api('set_event_name', {event_name: $('#eventName').val()}).done(load));
+  $('#newEventBtn').off('click').on('click',()=>{
+    if(confirm(I18N.t('confirmNewEvent'))) {
+      api('new_event', {}).done(load);
+    }
   });
 
+  // Pods
   $('#podsBtn').off('click').on('click',()=>{
     if(players.some(p=>!p.checked_in)){
       if(!confirm(I18N.t('warningUnchecked'))) return;
@@ -175,23 +230,93 @@ function render(res){
       api('create_pods',{}).done(load);
     }
   });
-
   $('#r1Btn').off('click').on('click',()=> api('create_r1',{}).done(load));
 
-  const podsArea = $('#podsArea').empty();
+  // Draft visuals
+  const draftVisuals = $('#draftVisuals').empty();
   (res.pods||[]).forEach(pod=>{
-    const card = $('<div class="card"/>');
-    card.append($('<div/>').html('<strong>Pod '+pod.pod+'</strong> ('+pod.seats.length+')'));
-    const ul2 = $('<ul class="list"/>');
-    pod.seats.forEach(s=>{
-      const li = $('<li/>');
-      li.append($('<div/>').text('S'+s.seat)).append($('<div/>').text(s.name));
-      ul2.append(li);
+    const podCard = $('<div class="card"/>');
+    podCard.append($('<div/>').html('<strong>Pod '+pod.pod+'</strong> ('+pod.seats.length+')'));
+    
+    const vis = $('<div/>').addClass('draft-table');
+    
+    // Create proper MTG draft seating arrangement
+    // Top row: seats 1, 2, 3, 4 (left to right)
+    // Bottom row: seats 8, 7, 6, 5 (left to right)
+    const topRow = $('<div/>').addClass('draft-row');
+    const bottomRow = $('<div/>').addClass('draft-row');
+    
+    // Create seat map for easy lookup
+    const seatMap = {};
+    pod.seats.forEach(s => { seatMap[s.seat] = s; });
+    
+    // Top row: 1, 2, 3, 4
+    [1, 2, 3, 4].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      const seatDiv = $('<div/>').addClass('seat');
+      seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+      seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
+      topRow.append(seatDiv);
     });
-    card.append(ul2);
-    podsArea.append(card);
+    
+    // Bottom row: 8, 7, 6, 5 (reverse order)
+    [8, 7, 6, 5].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      const seatDiv = $('<div/>').addClass('seat');
+      seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+      seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
+      bottomRow.append(seatDiv);
+    });
+    
+    // Assemble the table
+    vis.append(topRow);
+    vis.append(bottomRow);
+    podCard.append(vis);
+    draftVisuals.append(podCard);
   });
 
+  const podsArea = $('#podsArea').empty();
+  
+  // Collect all players from all pods and sort by name
+  const allPlayers = [];
+  (res.pods||[]).forEach(pod=>{
+    pod.seats.forEach(s=>{
+      allPlayers.push({
+        name: s.name,
+        pod: pod.pod,
+        seat: s.seat
+      });
+    });
+  });
+  allPlayers.sort((a,b) => a.name.localeCompare(b.name));
+  
+  // Create a table sorted by player name
+  const card = $('<div class="card"/>');
+  card.append($('<div/>').html('<strong>Players by Name</strong> ('+allPlayers.length+')'));
+  
+  const table = $('<table class="table"/>');
+  const thead = $('<thead/>');
+  const headerRow = $('<tr/>');
+  headerRow.append($('<th/>').text('Player'));
+  headerRow.append($('<th/>').text('Pod'));
+  headerRow.append($('<th/>').text('Seat'));
+  thead.append(headerRow);
+  table.append(thead);
+  
+  const tbody = $('<tbody/>');
+  allPlayers.forEach(p=>{
+    const tr = $('<tr/>');
+    tr.append($('<td/>').text(p.name));
+    tr.append($('<td/>').text(p.pod));
+    tr.append($('<td/>').text(p.seat));
+    tbody.append(tr);
+  });
+  table.append(tbody);
+  
+  card.append(table);
+  podsArea.append(card);
+
+  // Pairings
   if(res.current_round){
     $('#pairingsCard').show(); $('#roundNo').text(res.current_round);
     const tb = $('#pairingsTbl tbody').empty();
@@ -199,7 +324,8 @@ function render(res){
       const tr = $('<tr/>');
       tr.append($('<td/>').text(idx+1));
       tr.append($('<td/>').text(m.table_no || '-'));
-      tr.append($('<td/>').text((m.p1_name||'-') + '  vs  ' + (m.p2_name|| (m.is_bye?'(BYE)':'-'))));
+      const nm = (m.p1_name||'-') + '  vs  ' + (m.p2_name || (m.is_bye?'(BYE)':'-'));
+      tr.append($('<td/>').text(nm));
       const resBox = $('<div/>');
       if(m.p1_game_wins!=null && m.p2_game_wins!=null){
         resBox.append($('<span/>').text(m.p1_game_wins + ' – ' + m.p2_game_wins));
@@ -208,16 +334,15 @@ function render(res){
         resBox.text('—');
       }
       tr.append($('<td/>').append(resBox));
-
       const act = $('<td/>');
       const editBtn = $('<button class="ghost"/>').text('Edit').on('click', ()=>{
         const p1 = prompt('Games '+(m.p1_name||'P1')+' won', m.p1_game_wins ?? 2);
         if(p1===null) return;
         const p2 = prompt('Games '+(m.p2_name||'P2')+' won', m.p2_game_wins ?? 0);
         if(p2===null) return;
-        api('admin_edit_result', {match_id:m.id, p1:int(p1), p2:int(p2)}).done(load);
+        function intv(x){ try{return parseInt(x,10)}catch(e){return 0}}
+        api('admin_edit_result', {match_id:m.id, p1:intv(p1), p2:intv(p2)}).done(load);
       });
-      function int(x){ try{return parseInt(x,10)}catch(e){return 0}}
       act.append(editBtn);
       if(!m.is_bye){
         const drop1 = $('<button class="ghost small-btn"/>').text('Drop P1').on('click',()=> api('drop_player',{player_id:m.p1_id}).done(load));
@@ -227,7 +352,6 @@ function render(res){
           act.append(drop2);
         }
       }
-      tr.append(act);
       tb.append(tr);
     });
 
@@ -238,6 +362,7 @@ function render(res){
     $('#pairingsCard').hide();
   }
 
+  // Standings
   if(res.standings && res.standings.length){
     $('#standingsCard').show();
     const tb = $('#standingsTbl tbody').empty();
@@ -255,6 +380,22 @@ function render(res){
     $('#standingsCard').hide();
   }
 
+  // Show/hide stages based on status - only show one stage at a time
+  $('#preparationStage').toggle(status==='pre');
+  $('#checkinStage').toggle(status==='checkin');
+  $('#podsStage').toggle(status==='pods');
+  $('#pairingsCard').toggle(status==='round' || status==='top8');
+  $('#standingsCard').toggle(status==='standings');
+  $('#top8CreationCard').toggle(status==='standings');
+
+  // Buttons based on status
+  $('#startBtn').toggle(status==='pre');
+  $('#podsBtn').toggle(status==='checkin');
+  $('#r1Btn').toggle(status==='pods');
+  $('#nextRoundBtn').toggle(status==='round' || status==='top8');
+  $('#finalizeBtn').toggle(status==='round' && res.settings.current_round >= res.settings.total_rounds);
+  $('#createTop8Btn').toggle(status==='standings');
+
   // Debug
   $('#dbgPopulate').off('click').on('click',()=>{
     const n = parseInt($('#dbgCount').val()||'16',10);
@@ -262,6 +403,12 @@ function render(res){
   });
   $('#dbgCheckin').off('click').on('click',()=> api('debug_checkin_remaining',{}).done(load));
   $('#dbgCopy').off('click').on('click',()=> api('debug_copy_results',{}).done(load));
+  $('#dbgRandom').off('click').on('click',()=> api('debug_randomize_results',{}).done(load));
+  $('#dbgNewEvent').off('click').on('click',()=>{
+    if(confirm(I18N.t('confirmNewEvent'))) {
+      api('new_event', {}).done(load);
+    }
+  });
 }
 
 setInterval(load, 3000);
@@ -269,3 +416,4 @@ load();
 </script>
 </body>
 </html>
+

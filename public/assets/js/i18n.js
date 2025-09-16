@@ -53,6 +53,14 @@ window.I18N = {
       sf: "Halbfinale",
       f: "Finale",
       congrats: "Glückwunsch an den Sieger!",
+      noPhone: "Kein Handy",
+      noPhoneExplain: "Orange = Spieler ohne Handy; Ergebnisse müssen manuell von der Turnierleitung eingetragen werden.",
+      randomize: "Ergebnisse zufällig setzen",
+      manualOnly: "Dieser Spieler ist auf manuelle Ergebniseingabe gesetzt. Bitte TO informieren.",
+      newEvent: "Neues Event",
+      confirmNewEvent: "Alle Daten löschen und neues Event starten? Diese Aktion kann nicht rückgängig gemacht werden.",
+      waitingForTournament: "Bitte warten, bis das Turnier gestartet wird.",
+      tournamentNotStarted: "Das Turnier wurde noch nicht gestartet."
     },
     en: {
       welcome: "Welcome to Hubris Cup {YEAR}",
@@ -105,6 +113,14 @@ window.I18N = {
       sf: "Semifinals",
       f: "Finals",
       congrats: "Congratulations to the winner!",
+      noPhone: "No phone",
+      noPhoneExplain: "Orange = player without phone; results must be entered manually by the TO.",
+      randomize: "Randomize results",
+      manualOnly: "This player is set to manual result entry. Please inform the TO.",
+      newEvent: "New Event",
+      confirmNewEvent: "Delete all data and start new event? This action cannot be undone.",
+      waitingForTournament: "Please wait until the tournament is launched.",
+      tournamentNotStarted: "The tournament has not been started yet."
     }
   },
   t(key, vars={}){

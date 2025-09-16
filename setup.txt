@@ -1,0 +1,12 @@
+# prerequisites
+brew install php sqlite
+
+# unpack the project
+unzip hubriscup.zip
+cd hubriscup
+
+# expose /api to the docroot with a symlink
+cd public && ln -s ../api api && cd ..
+
+# run PHP’s built-in server (serves the public/ folder)
+php -S 127.0.0.1:8080 -t public
