@@ -97,11 +97,25 @@ switch($a){
           $oppReportedResult = null;
           if($oppReported && $m['p1_game_wins']!==null && $m['p2_game_wins']!==null){
             if($isP1){
-              // I'm P1, opponent is P2, so their result is p2_game_wins - p1_game_wins
-              $oppReportedResult = ['you'=>intval($m['p2_game_wins']), 'opp'=>intval($m['p1_game_wins'])];
+              // I'm P1, opponent is P2
+              // Show result from my perspective (P1) in input boxes
+              // Show result from my perspective in message too
+              $oppReportedResult = [
+                'you'=>intval($m['p1_game_wins']), 
+                'opp'=>intval($m['p2_game_wins']),
+                'opponent_name'=>isset($m['p2_name']) ? $m['p2_name'] : 'Unknown',
+                'opponent_original'=>intval($m['p1_game_wins']) . '-' . intval($m['p2_game_wins'])
+              ];
             } else {
-              // I'm P2, opponent is P1, so their result is p1_game_wins - p2_game_wins  
-              $oppReportedResult = ['you'=>intval($m['p1_game_wins']), 'opp'=>intval($m['p2_game_wins'])];
+              // I'm P2, opponent is P1
+              // Show result from my perspective (P2) in input boxes
+              // Show result from my perspective in message too
+              $oppReportedResult = [
+                'you'=>intval($m['p2_game_wins']), 
+                'opp'=>intval($m['p1_game_wins']),
+                'opponent_name'=>isset($m['p1_name']) ? $m['p1_name'] : 'Unknown',
+                'opponent_original'=>intval($m['p2_game_wins']) . '-' . intval($m['p1_game_wins'])
+              ];
             }
           }
           $payload['opp_report'] = $oppReportedResult;

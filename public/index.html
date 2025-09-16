@@ -88,7 +88,7 @@
         <div class="result-entry-container">
           <div class="result-entry-card">
             <div id="opponentReportedMessage" class="opponent-reported-message" style="display:none">
-              Opponent reported <span id="opponentResult"></span>
+              <span id="opponentName"></span> reported <span id="opponentResult"></span>
             </div>
             <div class="result-labels">
               <div class="result-label">You</div>
@@ -182,7 +182,18 @@ $('#langSel').on('change', function(){ I18N.setLang(this.value); applyI18N(); })
 document.addEventListener('langchange', applyI18N);
 applyI18N();
 
-const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), method:'POST', data:data || {}, dataType:'json'});
+const api = (a, data) => $.ajax({
+  url:'/api/api.php?a='+encodeURIComponent(a), 
+  method:'POST', 
+  data:data || {}, 
+  dataType:'json',
+  cache: false,
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  }
+});
 
 let me = localStorage.getItem('player_id');
 
@@ -190,14 +201,20 @@ function ping(){ /* Online indicator removed from player view */ }
 
 function loadState(){
   ping();
-  api('get_state', {view:'player', me: me || ''}).done(res=>{
+  // Add timestamp to prevent caching when switching players
+  const cacheBuster = Date.now();
+  console.log('Loading state for player:', me, 'at', new Date().toISOString());
+  api('get_state', {view:'player', me: me || '', _t: cacheBuster}).done(res=>{
+    console.log('Received state for player:', me, 'match_state:', res.match_state);
     renderState(res);
   });
 }
 
 function selectMe(id){
+  console.log('Switching to player:', id, 'from player:', me);
   me = String(id); localStorage.setItem('player_id', me);
-  loadState();
+  // Force hard reload to ensure fresh data from database
+  window.location.reload(true);
 }
 
 function renderPlayerSelect(players){
@@ -459,21 +476,30 @@ function renderRound(my, round, match, matchState, oppReport){
       // Result is confirmed - show final state
       $('#resultConfirmed').show();
       $('#gYou, #gOpp').prop('disabled', true);
-    } else if (oppReport && matchState && matchState.can_confirm) {
-      // Opponent reported, show their result and confirm button
+    } else if (matchState && matchState.opponent_reported && !matchState.i_reported) {
+      // Opponent reported but I haven't - show confirm dialog
       $('#opponentReportedMessage').show();
-      $('#opponentResult').text(oppReport.you + '-' + oppReport.opp);
-      $('#gYou').val(oppReport.you).prop('disabled', true);
-      $('#gOpp').val(oppReport.opp).prop('disabled', true);
+      $('#opponentName').text(oppReport.opponent_name || 'Unknown');
+      $('#opponentResult').text(oppReport.opponent_original || '0-0');
+      $('#gYou').val(oppReport.you || 0).prop('disabled', true);
+      $('#gOpp').val(oppReport.opp || 0).prop('disabled', true);
       $('#confirmBtn').show();
-      $('#changeBtn').show(); // Opponent can also change the result
+    } else if (matchState && matchState.i_reported && matchState.opponent_reported) {
+      // Both players have reported, show opponent's result for confirmation
+      $('#opponentReportedMessage').show();
+      $('#opponentName').text(oppReport.opponent_name || 'Unknown');
+      $('#opponentResult').text(oppReport.opponent_original || '0-0');
+      $('#gYou').val(oppReport.you || 0).prop('disabled', true);
+      $('#gOpp').val(oppReport.opp || 0).prop('disabled', true);
+      $('#confirmBtn').show();
+      $('#changeBtn').show(); // I can change my result
     } else if (matchState && matchState.i_reported) {
       // I reported, waiting for opponent
       $('#waitingMessage').show();
       $('#gYou, #gOpp').prop('disabled', true);
       $('#changeBtn').show(); // I can change my result
     } else {
-      // No one has reported yet, show entry form
+      // No one has reported yet - show entry form
       $('#enterBtn').show();
       $('#gYou, #gOpp').prop('disabled', false);
     }
