@@ -59,13 +59,11 @@
     </div>
 
     <div id="roundCard" class="card" style="display:none">
-      <div class="flex">
-        <div><strong><span data-i18n="currentRound"></span> <span id="roundNo">1</span></strong></div>
-        <div class="right small"><a href="/admin" target="_blank">Admin</a></div>
-      </div>
-      
-      <!-- Tab Navigation -->
-      <div class="tab-nav" style="margin-top:15px">
+      <!-- Single row tab layout: Round 1 (non-clickable) + Match + Standings -->
+      <div class="tab-nav" style="margin-top:0; margin-bottom:15px;">
+        <div class="tab-btn round-tab" style="background:var(--card); color:var(--ink); cursor:default; border-bottom:2px solid var(--accent);">
+          <strong><span data-i18n="currentRound"></span> <span id="roundNo">1</span></strong>
+        </div>
         <button class="tab-btn active" data-tab="match">Match</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
       </div>
@@ -116,8 +114,7 @@
             <div id="manualOnlyNote" class="small" style="display:none" data-i18n="manualOnly"></div>
           </div>
         </div>
-        <div class="small" style="margin-top:15px" data-i18n="dropNote"></div>
-        <div class="legend" id="legendNoPhone" data-i18n="noPhoneExplain"></div>
+        <div class="small center" style="margin-top:15px" data-i18n="dropNote"></div>
       </div>
       
       <!-- Standings Tab Content -->
