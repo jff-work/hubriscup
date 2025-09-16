@@ -63,29 +63,81 @@
         <div><strong><span data-i18n="currentRound"></span> <span id="roundNo">1</span></strong></div>
         <div class="right small"><a href="/admin" target="_blank">Admin</a></div>
       </div>
-      <div class="grid two" style="margin-top:15px">
-        <div class="card">
-          <div><strong data-i18n="myTable"></strong>: <span id="myTable"></span></div>
-          <div><strong data-i18n="opponent"></strong>: <span id="myOpp"></span></div>
-        </div>
-        <div class="card">
-          <div class="stack">
-            <label><span data-i18n="result"></span> (you – opp)</label>
-            <div class="flex" style="margin-top:10px">
-              <input type="number" id="gYou" min="0" max="3" value="2" style="width:80px">
-              <span>:</span>
-              <input type="number" id="gOpp" min="0" max="3" value="0" style="width:80px">
-            </div>
-            <div class="center" style="margin-top:15px">
-              <button id="enterBtn" class="btn"><span data-i18n="enter"></span></button>
-            </div>
-            <div id="manualOnlyNote" class="small" style="display:none" data-i18n="manualOnly"></div>
-            <div id="oppReported" class="small"></div>
+      
+      <!-- Tab Navigation -->
+      <div class="tab-nav" style="margin-top:15px">
+        <button class="tab-btn active" data-tab="match">Match</button>
+        <button class="tab-btn" data-tab="standings">Standings</button>
+      </div>
+      
+      <!-- Match Tab Content -->
+      <div id="matchTab" class="tab-content active">
+        <!-- Match Info Display -->
+        <div class="match-info-display" style="margin: 30px 0; text-align: center;">
+          <div class="match-detail">
+            <div class="match-label" data-i18n="myTable"></div>
+            <div class="match-value huge" id="myTable">-</div>
+          </div>
+          <div class="match-detail">
+            <div class="match-label" data-i18n="opponent"></div>
+            <div class="match-value huge" id="myOpp">-</div>
           </div>
         </div>
+        
+        <!-- Result Entry -->
+        <div class="result-entry-container">
+          <div class="result-entry-card">
+            <div id="opponentReportedMessage" class="opponent-reported-message" style="display:none">
+              Opponent reported <span id="opponentResult"></span>
+            </div>
+            <div class="result-labels">
+              <div class="result-label">You</div>
+              <div class="result-label">Opponent</div>
+            </div>
+            <div class="result-inputs">
+              <input type="number" id="gYou" min="0" max="2" value="2" class="result-input">
+              <span class="result-separator">:</span>
+              <input type="number" id="gOpp" min="0" max="2" value="0" class="result-input">
+            </div>
+            <div class="result-actions">
+              <button id="confirmBtn" class="btn result-btn confirm-btn" style="display:none">Confirm Result</button>
+              <button id="enterBtn" class="btn result-btn"><span data-i18n="enter"></span></button>
+              <button id="changeBtn" class="btn secondary result-btn" style="display:none">Change Result</button>
+            </div>
+            <div id="waitingMessage" class="waiting-message" style="display:none">
+              Waiting for opponent to confirm
+            </div>
+            <div id="resultConfirmed" class="result-confirmed" style="display:none">
+              <span class="badge green">Result Confirmed</span>
+              <div class="small" style="margin-top:10px; color: #666;">
+                Please contact TO if something is wrong
+              </div>
+            </div>
+            <div id="manualOnlyNote" class="small" style="display:none" data-i18n="manualOnly"></div>
+          </div>
+        </div>
+        <div class="small" style="margin-top:15px" data-i18n="dropNote"></div>
+        <div class="legend" id="legendNoPhone" data-i18n="noPhoneExplain"></div>
       </div>
-      <div class="small" style="margin-top:15px" data-i18n="dropNote"></div>
-      <div class="legend" id="legendNoPhone" data-i18n="noPhoneExplain"></div>
+      
+      <!-- Standings Tab Content -->
+      <div id="standingsTab" class="tab-content">
+        <div style="overflow:auto; margin-top:15px">
+          <table class="table" id="roundStandingsTbl">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="players"></th>
+                <th data-i18n="points"></th>
+                <th data-i18n="omw"></th>
+                <th data-i18n="gwp"></th>
+                <th data-i18n="ogw"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="standingsCard" class="card" style="display:none">
@@ -381,7 +433,7 @@ function renderSeat(pods, my){
   }
 }
 
-function renderRound(my, round, match, oppReport){
+function renderRound(my, round, match, matchState, oppReport){
   if(!my || !round){ $('#roundCard').hide(); return; }
   $('#roundCard').show();
   $('#roundNo').text(round);
@@ -389,22 +441,110 @@ function renderRound(my, round, match, oppReport){
     $('#myTable').text(match.table_no || '-');
     const opp = (match.p1_id==my.id)? match.p2_name : match.p1_name;
     $('#myOpp').text(opp || '-');
-    if(oppReport){
-      $('#oppReported').text('Opponent reported: '+oppReport.p1+'-'+oppReport.p2);
-    } else {
-      $('#oppReported').text('');
-    }
+    
     const isManual = !!my.no_phone;
     $('#enterBtn').prop('disabled', isManual);
     $('#manualOnlyNote').toggle(isManual);
+    
+    // Reset all UI elements first
+    $('#confirmBtn').hide();
+    $('#enterBtn').hide();
+    $('#changeBtn').hide();
+    $('#waitingMessage').hide();
+    $('#resultConfirmed').hide();
+    $('#opponentReportedMessage').hide();
+    $('#gYou, #gOpp').prop('disabled', false);
+    
+    if (matchState && matchState.confirmed) {
+      // Result is confirmed - show final state
+      $('#resultConfirmed').show();
+      $('#gYou, #gOpp').prop('disabled', true);
+    } else if (oppReport && matchState && matchState.can_confirm) {
+      // Opponent reported, show their result and confirm button
+      $('#opponentReportedMessage').show();
+      $('#opponentResult').text(oppReport.you + '-' + oppReport.opp);
+      $('#gYou').val(oppReport.you).prop('disabled', true);
+      $('#gOpp').val(oppReport.opp).prop('disabled', true);
+      $('#confirmBtn').show();
+      $('#changeBtn').show(); // Opponent can also change the result
+    } else if (matchState && matchState.i_reported) {
+      // I reported, waiting for opponent
+      $('#waitingMessage').show();
+      $('#gYou, #gOpp').prop('disabled', true);
+      $('#changeBtn').show(); // I can change my result
+    } else {
+      // No one has reported yet, show entry form
+      $('#enterBtn').show();
+      $('#gYou, #gOpp').prop('disabled', false);
+    }
+    
+    // Enter button handler (for initial report)
     $('#enterBtn').off('click').on('click', ()=>{
       if(isManual) return;
+      
       const gy = parseInt($('#gYou').val()||'0',10);
       const go = parseInt($('#gOpp').val()||'0',10);
-      api('submit_result', {match_id: match.id, reporter_id: my.id, g_you: gy, g_opp: go}).done(loadState);
+      
+      // Validate result - only allow: 1-0, 2-1, 2-0, 1-1
+      const validResults = [
+        {you: 1, opp: 0},
+        {you: 2, opp: 1},
+        {you: 2, opp: 0},
+        {you: 1, opp: 1}
+      ];
+      
+      const isValidResult = validResults.some(result => result.you === gy && result.opp === go);
+      
+      if (!isValidResult) {
+        alert('Invalid result. Valid results are: 1-0, 2-1, 2-0, 1-1');
+        return;
+      }
+      
+      api('submit_result', {match_id: match.id, reporter_id: my.id, g_you: gy, g_opp: go}).done(()=>{
+        loadState();
+      }).fail(()=>{
+        alert('Failed to submit result. Please try again.');
+      });
+    });
+    
+    // Confirm button handler
+    $('#confirmBtn').off('click').on('click', ()=>{
+      if(isManual) return;
+      
+      api('confirm_result', {match_id: match.id, confirmer_id: my.id}).done(()=>{
+        loadState();
+      }).fail(()=>{
+        alert('Failed to confirm result. Please try again.');
+      });
+    });
+    
+    // Change button handler
+    $('#changeBtn').off('click').on('click', ()=>{
+      if(isManual) return;
+      
+      // Reset to entry mode
+      $('#gYou, #gOpp').prop('disabled', false);
+      $('#gYou').val('2');
+      $('#gOpp').val('0');
+      $('#enterBtn').show();
+      $('#confirmBtn').hide();
+      $('#changeBtn').hide();
+      $('#waitingMessage').hide();
+      $('#opponentReportedMessage').hide();
     });
   } else {
-    $('#myTable').text('-'); $('#myOpp').text('-'); $('#oppReported').text('');
+    $('#myTable').text('-'); 
+    $('#myOpp').text('-');
+    // Reset form state
+    $('#gYou, #gOpp').prop('disabled', false);
+    $('#gYou').val('2');
+    $('#gOpp').val('0');
+    $('#enterBtn').show();
+    $('#confirmBtn').hide();
+    $('#changeBtn').hide();
+    $('#waitingMessage').hide();
+    $('#resultConfirmed').hide();
+    $('#opponentReportedMessage').hide();
   }
 }
 
@@ -419,6 +559,34 @@ function renderStandings(stand){
     tr.append($('<td/>').text(r.gwp.toFixed(3)));
     tr.append($('<td/>').text(r.ogw.toFixed(3)));
     tb.append(tr);
+  });
+}
+
+function renderRoundStandings(stand){
+  const tb = $('#roundStandingsTbl tbody'); tb.empty();
+  (stand || []).forEach((r,idx)=>{
+    const tr = $('<tr/>');
+    tr.append($('<td/>').text(idx+1));
+    tr.append($('<td/>').text(r.name));
+    tr.append($('<td/>').text(r.mp));
+    tr.append($('<td/>').text(r.omw.toFixed(3)));
+    tr.append($('<td/>').text(r.gwp.toFixed(3)));
+    tr.append($('<td/>').text(r.ogw.toFixed(3)));
+    tb.append(tr);
+  });
+}
+
+function initTabs(){
+  $('.tab-btn').off('click').on('click', function(){
+    const tabName = $(this).data('tab');
+    
+    // Remove active class from all tabs and content
+    $('.tab-btn').removeClass('active');
+    $('.tab-content').removeClass('active');
+    
+    // Add active class to clicked tab and corresponding content
+    $(this).addClass('active');
+    $('#' + tabName + 'Tab').addClass('active');
   });
 }
 
@@ -475,13 +643,17 @@ function renderState(res){
   } else if(status==='round'){
     // Round stage: show current round match
     const match = res.my_match || null;
-    renderRound(my, res.current_round, match, res.opp_report);
+    renderRound(my, res.current_round, match, res.match_state, res.opp_report);
     showOnly(['#roundCard']);
+    initTabs(); // Initialize tab functionality
+    if(res.standings && res.standings.length){ renderRoundStandings(res.standings); }
   } else if(status==='top8'){
     // Top 8 stage: show Top 8 matches
     const match = res.my_match || null;
-    renderRound(my, res.current_round, match, res.opp_report);
+    renderRound(my, res.current_round, match, res.match_state, res.opp_report);
     showOnly(['#roundCard']);
+    initTabs(); // Initialize tab functionality
+    if(res.standings && res.standings.length){ renderRoundStandings(res.standings); }
   } else if(status==='standings' || status==='complete'){
     // Standings stage: show final standings
     showOnly(['#standingsCard']);
@@ -490,7 +662,11 @@ function renderState(res){
     showOnly(['#playerSelect']);
   }
 
-  if(res.standings && res.standings.length){ $('#standingsCard').show(); renderStandings(res.standings); }
+  // Only show standalone standings card for final standings stage, not during rounds
+  if((status==='standings' || status==='complete') && res.standings && res.standings.length){ 
+    $('#standingsCard').show(); 
+    renderStandings(res.standings); 
+  }
 }
 
 setInterval(loadState, 3000);

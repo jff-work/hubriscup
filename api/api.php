@@ -73,16 +73,38 @@ switch($a){
           $payload['my_match'] = [
             'id'=>intval($m['id']),'table_no'=>$m['table_no']!==null?intval($m['table_no']):null,
             'p1_id'=>$m['p1_id']!==null?intval($m['p1_id']):null,'p2_id'=>$m['p2_id']!==null?intval($m['p2_id']):null,
-            'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name']
+            'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name'],
+            'confirmed'=>intval($m['confirmed'])==1,
+            'p1_reported'=>intval($m['p1_reported'])==1,
+            'p2_reported'=>intval($m['p2_reported'])==1
           ];
-          $oppReported = null;
-          if(intval($m['p1_id'])==$me && intval($m['p2_reported'])==1 && $m['p2_game_wins']!==null){
-            $oppReported = ['p1'=>intval($m['p1_game_wins']??0),'p2'=>intval($m['p2_game_wins']??0)];
+          
+          // Determine match state for this player
+          $isP1 = (intval($m['p1_id'])==$me);
+          $isP2 = (intval($m['p2_id'])==$me);
+          $iReported = ($isP1 && intval($m['p1_reported'])==1) || ($isP2 && intval($m['p2_reported'])==1);
+          $oppReported = ($isP1 && intval($m['p2_reported'])==1) || ($isP2 && intval($m['p1_reported'])==1);
+          
+          $payload['match_state'] = [
+            'i_reported' => $iReported,
+            'opponent_reported' => $oppReported,
+            'confirmed' => intval($m['confirmed'])==1,
+            'can_confirm' => $oppReported && !intval($m['confirmed']),
+            'can_change' => $iReported && !intval($m['confirmed'])
+          ];
+          
+          // If opponent reported, show their result (swapped for this player's perspective)
+          $oppReportedResult = null;
+          if($oppReported && $m['p1_game_wins']!==null && $m['p2_game_wins']!==null){
+            if($isP1){
+              // I'm P1, opponent is P2, so their result is p2_game_wins - p1_game_wins
+              $oppReportedResult = ['you'=>intval($m['p2_game_wins']), 'opp'=>intval($m['p1_game_wins'])];
+            } else {
+              // I'm P2, opponent is P1, so their result is p1_game_wins - p2_game_wins  
+              $oppReportedResult = ['you'=>intval($m['p1_game_wins']), 'opp'=>intval($m['p2_game_wins'])];
+            }
           }
-          if(intval($m['p2_id'])==$me && intval($m['p1_reported'])==1 && $m['p1_game_wins']!==null){
-            $oppReported = ['p1'=>intval($m['p1_game_wins']??0),'p2'=>intval($m['p2_game_wins']??0)];
-          }
-          $payload['opp_report'] = $oppReported;
+          $payload['opp_report'] = $oppReportedResult;
           break;
         }
       }
@@ -167,15 +189,45 @@ switch($a){
     if(!$isP1 && !$isP2) j(['ok'=>false,'error'=>'not your match']);
     $rp = one("SELECT no_phone FROM players WHERE id=?", [$rid]);
     if($rp && intval($rp['no_phone'])==1){ j(['ok'=>false,'error'=>'manual_only']); }
-    if($isP1){
-      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
+    
+    // Check if result is already confirmed
+    if(intval($m['confirmed'])==1) j(['ok'=>false,'error'=>'result already confirmed']);
+    
+    // If this is a change (opponent already reported), reset the other player's report
+    if($isP1 && intval($m['p2_reported'])==1){
+      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, p2_reported=0, confirmed=0, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
+    } elseif($isP2 && intval($m['p1_reported'])==1){
+      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=0, p2_reported=1, confirmed=0, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
     } else {
-      q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p2_reported=1, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
+      // First report
+      if($isP1){
+        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, updated_at=? WHERE id=?", [$gy,$go,date('c'),$mid]);
+      } else {
+        q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p2_reported=1, updated_at=? WHERE id=?", [$go,$gy,date('c'),$mid]);
+      }
     }
+    j(['ok'=>true]);
+    break;
+
+  case 'confirm_result':
+    $mid = intv($_POST['match_id'] ?? 0);
+    $cid = intv($_POST['confirmer_id'] ?? 0);
     $m = one("SELECT * FROM matches WHERE id=?", [$mid]);
-    if(intval($m['p1_reported'])==1 && intval($m['p2_reported'])==1 && $m['p1_game_wins']!==null && $m['p2_game_wins']!==null){
-      q("UPDATE matches SET confirmed=1 WHERE id=?", [$mid]);
-    }
+    if(!$m) j(['ok'=>false,'error'=>'no match']);
+    if($m['is_bye']) j(['ok'=>false,'error'=>'bye match']);
+    $isP1 = ($m['p1_id']==$cid);
+    $isP2 = ($m['p2_id']==$cid);
+    if(!$isP1 && !$isP2) j(['ok'=>false,'error'=>'not your match']);
+    
+    // Check if result is already confirmed
+    if(intval($m['confirmed'])==1) j(['ok'=>false,'error'=>'result already confirmed']);
+    
+    // Check if opponent has reported
+    $opponentReported = ($isP1 && intval($m['p2_reported'])==1) || ($isP2 && intval($m['p1_reported'])==1);
+    if(!$opponentReported) j(['ok'=>false,'error'=>'opponent has not reported yet']);
+    
+    // Confirm the result
+    q("UPDATE matches SET confirmed=1, updated_at=? WHERE id=?", [date('c'),$mid]);
     j(['ok'=>true]);
     break;
 
