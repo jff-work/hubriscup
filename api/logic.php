@@ -16,28 +16,35 @@ function clear_pods(){
   q("UPDATE players SET pod=NULL, pod_seat=NULL");
 }
 
-/** Pod building: prefer 8s, allow 7/6; if impossible (e.g., 17), allow exactly one 9.
- * Returns array of pod sizes, minimizing number of damaged pods (<8 or >8).
- * Examples: 21 → 8/7/6; 22 → 8/8/6; 17 → 9/8
+/** Pod building: prefer 8s, then evens, then odds. Allow 9/10 when beneficial.
+ * Returns array of pod sizes, maximizing 8s, then evens, then minimizing odds.
+ * Examples: 25 → 8/8/9; 26 → 8/8/10; 27 → 8/7/6/6; 28 → 8/8/6/6
  */
 function compute_pod_sizes($n){
-  // First try with standard sizes (8,7,6)
-  $allowed = [8,7,6];
+  // Try with all allowed sizes (8,7,6,9,10)
+  $allowed = [8,7,6,9,10];
   $res = search_sizes($n, $allowed);
-  
-  // If no solution with standard sizes, allow one 9-pod
-  if(!$res){
-    $allowed2 = [9,8,7,6];
-    $res = search_sizes($n, $allowed2);
-  }
   
   if(!$res) return null;
   
-  // Sort solutions: minimize damaged pods, then minimize total pods
+  // Sort solutions: maximize 8s, then evens, then minimize odds, then minimize total pods
   usort($res, function($a,$b){
-    $damA = count(array_filter($a, fn($x)=>$x!=8));
-    $damB = count(array_filter($b, fn($x)=>$x!=8));
-    if($damA != $damB) return $damA - $damB;
+    // Count 8s (highest priority)
+    $eightsA = count(array_filter($a, fn($x)=>$x==8));
+    $eightsB = count(array_filter($b, fn($x)=>$x==8));
+    if($eightsA != $eightsB) return $eightsB - $eightsA;
+    
+    // Count evens (second priority)
+    $evensA = count(array_filter($a, fn($x)=>$x%2==0));
+    $evensB = count(array_filter($b, fn($x)=>$x%2==0));
+    if($evensA != $evensB) return $evensB - $evensA;
+    
+    // Minimize odds (third priority)
+    $oddsA = count(array_filter($a, fn($x)=>$x%2==1));
+    $oddsB = count(array_filter($b, fn($x)=>$x%2==1));
+    if($oddsA != $oddsB) return $oddsA - $oddsB;
+    
+    // Finally, minimize total pods
     return count($a) - count($b);
   });
   

@@ -60,7 +60,7 @@ input,select{background:#0f1318;border:1px solid #1f2a38;color:var(--ink);paddin
   /* Draft table mobile optimizations */
   .draft-table{
     gap:8px;
-    padding:8px 16px;
+    padding:8px 10px;
     overflow-x:auto;
     justify-content:flex-start;
   }
@@ -109,7 +109,7 @@ input,select{background:#0f1318;border:1px solid #1f2a38;color:var(--ink);paddin
   /* Even more compact draft table for very small screens */
   .draft-table{
     gap:4px;
-    padding:4px 12px;
+    padding:4px 10px;
     overflow-x:auto;
     justify-content:flex-start;
   }
@@ -152,7 +152,7 @@ input,select{background:#0f1318;border:1px solid #1f2a38;color:var(--ink);paddin
   .admin .grid.three{grid-template-columns:repeat(3,1fr)}
   .admin .draft-table{grid-template-columns:repeat(8,1fr)}
 }
-.draft-table{display:flex;justify-content:flex-start;align-items:center;gap:20px;margin-top:10px;padding:0 20px;overflow-x:auto}
+.draft-table{display:flex;justify-content:center;align-items:center;gap:20px;margin-top:10px;padding:10 10px;overflow-x:auto}
 .admin .draft-table{flex-direction:column;gap:10px}
 .draft-side{display:flex;flex-direction:column;gap:8px;flex-shrink:0;min-width:fit-content}
 .draft-row{display:flex;gap:10px;justify-content:center;flex-wrap:nowrap}

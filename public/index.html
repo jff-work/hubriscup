@@ -48,6 +48,9 @@
         <button id="checkinBtn" class="btn"><span data-i18n="checkinButton"></span></button>
       </div>
       <div class="small center" style="margin-top:15px" data-i18n="dropNote"></div>
+      <div class="small center" style="margin-top:10px; color: #666;">
+        If your name is not listed, please contact the TO
+      </div>
     </div>
 
     <div id="seatCard" class="card" style="display:none">
@@ -171,33 +174,211 @@ function renderSeat(pods, my){
   const seatMap = {};
   seats.forEach(s => { seatMap[s.seat] = s; });
   
-  // Create left side (seats 1, 2, 3, 4 - top row)
-  const leftSide = $('<div/>').addClass('draft-side');
-  [1, 2, 3, 4].forEach(seatNum => {
-    const seat = seatMap[seatNum];
-    if(seat){
+  const playerCount = seats.length;
+  
+  // Debug: log the player's seat info
+  console.log('Player seat info:', { pod_seat: my.pod_seat, playerCount, seats: seats.map(s => ({ seat: s.seat, name: s.name })) });
+  
+  if (playerCount === 6) {
+    // For 6 players: 3 seats on left, 3 seats on right
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Left side: 1, 2, 3
+    [1, 2, 3].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        leftSide.append(seatDiv);
+      }
+    });
+    
+    // Right side: 6, 5, 4 (reverse order)
+    [6, 5, 4].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        rightSide.append(seatDiv);
+      }
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  } else if (playerCount === 7) {
+    // For 7 players: show only occupied seats but maintain 8-seat positioning
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Left side: 1, 2, 3, 4 - only show occupied seats
+    [1, 2, 3, 4].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        leftSide.append(seatDiv);
+      } else {
+        // Add invisible placeholder to maintain positioning
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        leftSide.append(placeholder);
+      }
+    });
+    
+    // Right side: 8, 7, 6, 5 (reverse order) - only show occupied seats
+    [8, 7, 6, 5].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        rightSide.append(seatDiv);
+      } else {
+        // Add invisible placeholder to maintain positioning
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        rightSide.append(placeholder);
+      }
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  } else if (playerCount === 8) {
+    // For 8 players: show all 8 seats
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Left side: 1, 2, 3, 4
+    [1, 2, 3, 4].forEach(seatNum => {
+      const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
       seatDiv.append($('<span/>').addClass('name').text(seat.name));
       leftSide.append(seatDiv);
-    }
-  });
-  
-  // Create right side (seats 8, 7, 6, 5 - bottom row, reverse order)
-  const rightSide = $('<div/>').addClass('draft-side');
-  [8, 7, 6, 5].forEach(seatNum => {
-    const seat = seatMap[seatNum];
-    if(seat){
+    });
+    
+    // Right side: 8, 7, 6, 5 (reverse order)
+    [8, 7, 6, 5].forEach(seatNum => {
+      const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
       seatDiv.append($('<span/>').addClass('name').text(seat.name));
       rightSide.append(seatDiv);
-    }
-  });
-  
-  // Assemble the table
-  vis.append(leftSide);
-  vis.append(rightSide);
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  } else if (playerCount === 9) {
+    // For 9 players: show only occupied seats but maintain 10-seat positioning
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Left side: 1, 2, 3, 4, 5 - only show occupied seats
+    [1, 2, 3, 4, 5].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        leftSide.append(seatDiv);
+      } else {
+        // Add invisible placeholder to maintain positioning
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        leftSide.append(placeholder);
+      }
+    });
+    
+    // Right side: 10, 9, 8, 7, 6 (reverse order) - only show occupied seats
+    [10, 9, 8, 7, 6].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        rightSide.append(seatDiv);
+      } else {
+        // Add invisible placeholder to maintain positioning
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        rightSide.append(placeholder);
+      }
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  } else if (playerCount === 10) {
+    // For 10 players: show all 10 seats
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Left side: 1, 2, 3, 4, 5
+    [1, 2, 3, 4, 5].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+      seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+      seatDiv.append($('<span/>').addClass('name').text(seat.name));
+      leftSide.append(seatDiv);
+    });
+    
+    // Right side: 10, 9, 8, 7, 6 (reverse order)
+    [10, 9, 8, 7, 6].forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+      seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+      seatDiv.append($('<span/>').addClass('name').text(seat.name));
+      rightSide.append(seatDiv);
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  } else {
+    // For other player counts: show only occupied seats but maintain appropriate positioning for odd counts
+    const leftSide = $('<div/>').addClass('draft-side');
+    const rightSide = $('<div/>').addClass('draft-side');
+    
+    // Determine if we need to maintain positioning (for odd player counts)
+    const isOddCount = playerCount % 2 === 1;
+    const maxSeats = Math.max(...seats.map(s => s.seat));
+    
+    // For odd counts, determine the appropriate layout based on max seats
+    const useTenSeatLayout = isOddCount && maxSeats > 8;
+    const leftSeats = useTenSeatLayout ? [1, 2, 3, 4, 5] : [1, 2, 3, 4];
+    const rightSeats = useTenSeatLayout ? [10, 9, 8, 7, 6] : [8, 7, 6, 5];
+    
+    // Left side: show occupied or placeholder for odd counts
+    leftSeats.forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        leftSide.append(seatDiv);
+      } else if (isOddCount && seatNum <= maxSeats) {
+        // Add invisible placeholder to maintain positioning for odd counts
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        leftSide.append(placeholder);
+      }
+    });
+    
+    // Right side: show occupied or placeholder for odd counts
+    rightSeats.forEach(seatNum => {
+      const seat = seatMap[seatNum];
+      if(seat){
+        const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        rightSide.append(seatDiv);
+      } else if (isOddCount && seatNum <= maxSeats) {
+        // Add invisible placeholder to maintain positioning for odd counts
+        const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+        rightSide.append(placeholder);
+      }
+    });
+    
+    vis.append(leftSide);
+    vis.append(rightSide);
+  }
 }
 
 function renderRound(my, round, match, oppReport){
@@ -273,9 +454,9 @@ function renderState(res){
 
   // Strict flow control: Preparation → Check-in → Pods → Rounds → Standings → Top 8
   if(status==='pre'){
-    // Preparation stage: show waiting message if player is selected, otherwise show player selection
+    // Preparation stage: show only welcome card and player selection (no check-in until tournament starts)
     if(my){
-      showOnly(['.welcome-card', '#waitingCard']);
+      showOnly(['.welcome-card']);
     } else {
       showOnly(['.welcome-card', '#playerSelect']);
     }

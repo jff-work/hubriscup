@@ -240,37 +240,209 @@ function render(res){
     
     const vis = $('<div/>').addClass('draft-table');
     
-    // Create proper MTG draft seating arrangement
-    // Top row: seats 1, 2, 3, 4 (left to right)
-    // Bottom row: seats 8, 7, 6, 5 (left to right)
-    const topRow = $('<div/>').addClass('draft-row');
-    const bottomRow = $('<div/>').addClass('draft-row');
-    
     // Create seat map for easy lookup
     const seatMap = {};
     pod.seats.forEach(s => { seatMap[s.seat] = s; });
     
-    // Top row: 1, 2, 3, 4
-    [1, 2, 3, 4].forEach(seatNum => {
-      const seat = seatMap[seatNum];
-      const seatDiv = $('<div/>').addClass('seat');
-      seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
-      seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
-      topRow.append(seatDiv);
-    });
+    const playerCount = pod.seats.length;
     
-    // Bottom row: 8, 7, 6, 5 (reverse order)
-    [8, 7, 6, 5].forEach(seatNum => {
-      const seat = seatMap[seatNum];
-      const seatDiv = $('<div/>').addClass('seat');
-      seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
-      seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
-      bottomRow.append(seatDiv);
-    });
+    if (playerCount === 6) {
+      // For 6 players: 3 seats on top, 3 seats on bottom
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3
+      [1, 2, 3].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+        seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
+        topRow.append(seatDiv);
+      });
+      
+      // Bottom row: 6, 5, 4 (reverse order)
+      [6, 5, 4].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+        seatDiv.append($('<span/>').addClass('name').text(seat ? seat.name : ''));
+        bottomRow.append(seatDiv);
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    } else if (playerCount === 7) {
+      // For 7 players: show only occupied seats but maintain 8-seat positioning
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3, 4 - only show occupied seats
+      [1, 2, 3, 4].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if(seat){
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          topRow.append(seatDiv);
+        } else {
+          // Add invisible placeholder to maintain positioning
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          topRow.append(placeholder);
+        }
+      });
+      
+      // Bottom row: 8, 7, 6, 5 (reverse order) - only show occupied seats
+      [8, 7, 6, 5].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if(seat){
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          bottomRow.append(seatDiv);
+        } else {
+          // Add invisible placeholder to maintain positioning
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          bottomRow.append(placeholder);
+        }
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    } else if (playerCount === 8) {
+      // For 8 players: show all 8 seats
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3, 4
+      [1, 2, 3, 4].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        topRow.append(seatDiv);
+      });
+      
+      // Bottom row: 8, 7, 6, 5 (reverse order)
+      [8, 7, 6, 5].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        bottomRow.append(seatDiv);
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    } else if (playerCount === 9) {
+      // For 9 players: show only occupied seats but maintain 10-seat positioning
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3, 4, 5 - only show occupied seats
+      [1, 2, 3, 4, 5].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if(seat){
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          topRow.append(seatDiv);
+        } else {
+          // Add invisible placeholder to maintain positioning
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          topRow.append(placeholder);
+        }
+      });
+      
+      // Bottom row: 10, 9, 8, 7, 6 (reverse order) - only show occupied seats
+      [10, 9, 8, 7, 6].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if(seat){
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          bottomRow.append(seatDiv);
+        } else {
+          // Add invisible placeholder to maintain positioning
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          bottomRow.append(placeholder);
+        }
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    } else if (playerCount === 10) {
+      // For 10 players: show all 10 seats
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3, 4, 5
+      [1, 2, 3, 4, 5].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        topRow.append(seatDiv);
+      });
+      
+      // Bottom row: 10, 9, 8, 7, 6 (reverse order)
+      [10, 9, 8, 7, 6].forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+        seatDiv.append($('<span/>').addClass('name').text(seat.name));
+        bottomRow.append(seatDiv);
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    } else {
+      // For other player counts: show only occupied seats but maintain appropriate positioning for odd counts
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Determine if we need to maintain positioning (for odd player counts)
+      const isOddCount = playerCount % 2 === 1;
+      const maxSeats = Math.max(...pod.seats.map(s => s.seat));
+      
+      // For odd counts, determine the appropriate layout based on max seats
+      const useTenSeatLayout = isOddCount && maxSeats > 8;
+      const topSeats = useTenSeatLayout ? [1, 2, 3, 4, 5] : [1, 2, 3, 4];
+      const bottomSeats = useTenSeatLayout ? [10, 9, 8, 7, 6] : [8, 7, 6, 5];
+      
+      // Top row: show occupied or placeholder for odd counts
+      topSeats.forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if (seat) {
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          topRow.append(seatDiv);
+        } else if (isOddCount && seatNum <= maxSeats) {
+          // Add invisible placeholder to maintain positioning for odd counts
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          topRow.append(placeholder);
+        }
+      });
+      
+      // Bottom row: show occupied or placeholder for odd counts
+      bottomSeats.forEach(seatNum => {
+        const seat = seatMap[seatNum];
+        if (seat) {
+          const seatDiv = $('<div/>').addClass('seat');
+          seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
+          seatDiv.append($('<span/>').addClass('name').text(seat.name));
+          bottomRow.append(seatDiv);
+        } else if (isOddCount && seatNum <= maxSeats) {
+          // Add invisible placeholder to maintain positioning for odd counts
+          const placeholder = $('<div/>').addClass('seat').css('visibility', 'hidden');
+          bottomRow.append(placeholder);
+        }
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+    }
     
-    // Assemble the table
-    vis.append(topRow);
-    vis.append(bottomRow);
     podCard.append(vis);
     draftVisuals.append(podCard);
   });
