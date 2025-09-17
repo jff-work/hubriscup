@@ -62,7 +62,7 @@
       <!-- Single row tab layout: Round 1 (non-clickable) + Match + Standings -->
       <div class="tab-nav" style="margin-top:0; margin-bottom:15px;">
         <div class="tab-btn round-tab" style="background:var(--card); color:var(--ink); cursor:default; border-bottom:2px solid var(--accent);">
-          <strong><span data-i18n="currentRound"></span> <span id="roundNo">1</span></strong>
+          <strong><span id="roundNo">1</span></strong>
         </div>
         <button class="tab-btn active" data-tab="match">Match</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
@@ -450,10 +450,17 @@ function renderSeat(pods, my){
   }
 }
 
+function getRoundLabel(round) {
+  if (round == 100) return I18N.t('qf');
+  if (round == 101) return I18N.t('sf');
+  if (round == 102) return I18N.t('f');
+  return 'Round ' + round;
+}
+
 function renderRound(my, round, match, matchState, oppReport){
   if(!my || !round){ $('#roundCard').hide(); return; }
   $('#roundCard').show();
-  $('#roundNo').text(round);
+  $('#roundNo').text(getRoundLabel(round));
   if(match){
     $('#myTable').text(match.table_no || '-');
     const opp = match.is_bye ? 'Bye' : ((match.p1_id==my.id)? match.p2_name : match.p1_name);

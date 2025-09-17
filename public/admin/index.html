@@ -100,7 +100,7 @@
       <!-- Tab navigation -->
       <div class="tab-nav" style="margin-top:0; margin-bottom:15px;">
         <div class="tab-btn round-tab" style="background:var(--card); color:var(--ink); cursor:default; border-bottom:2px solid var(--accent);">
-          <strong><span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
+          <strong><span id="roundNo">-</span></strong>
         </div>
         <button class="tab-btn active" data-tab="pairings">Pairings</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
@@ -209,6 +209,13 @@
 function applyI18N(){
   $('[data-i18n]').each(function(){ const k=$(this).data('i18n'); $(this).text(I18N.t(k)); });
   $('#langSel').val(I18N.lang);
+}
+
+function getRoundLabel(round) {
+  if (round == 100) return I18N.t('qf');
+  if (round == 101) return I18N.t('sf');
+  if (round == 102) return I18N.t('f');
+  return 'Round ' + round;
 }
 $('#langSel').on('change', function(){ I18N.setLang(this.value); applyI18N(); });
 document.addEventListener('langchange', applyI18N); applyI18N();
@@ -562,7 +569,7 @@ function render(res){
 
   // Pairings
   if(res.current_round){
-    $('#pairingsCard').show(); $('#roundNo').text(res.current_round);
+    $('#pairingsCard').show(); $('#roundNo').text(getRoundLabel(res.current_round));
     initTabs(); // Initialize tab functionality
     if(res.standings && res.standings.length){ renderAdminRoundStandings(res.standings); }
     
