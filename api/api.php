@@ -271,7 +271,13 @@ switch($a){
       j(['ok'=>false,'error'=>'no result to confirm']);
     }
     
-    q("UPDATE matches SET confirmed=?, updated_at=? WHERE id=?", [$confirmed,date('c'),$mid]);
+    if($confirmed) {
+      // When confirming, ensure both players are marked as reported (like player confirmation flow)
+      q("UPDATE matches SET confirmed=1, p1_reported=1, p2_reported=1, updated_at=? WHERE id=?", [date('c'),$mid]);
+    } else {
+      // When unconfirming, just set confirmed=0
+      q("UPDATE matches SET confirmed=0, updated_at=? WHERE id=?", [date('c'),$mid]);
+    }
     j(['ok'=>true]);
     break;
 

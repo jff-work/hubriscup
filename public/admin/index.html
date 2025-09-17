@@ -603,31 +603,30 @@ function render(res){
       // Confirmed column
       const confirmedCell = $('<td/>');
       if(m.p1_game_wins!=null && m.p2_game_wins!=null){
-        if(m.confirmed) {
-          confirmedCell.append('✅');
-        } else {
-          const checkbox = $('<input type="checkbox"/>').on('change', function(){
-            const $this = $(this);
-            const originalChecked = $this.prop('checked');
-            api('admin_confirm_result', {match_id: m.id, confirmed: originalChecked}).done(function(response) {
-              if (response.ok) {
-                // Success - let the next auto-refresh handle the UI update
-                // Don't call load() here to avoid flickering
-              } else {
-                // Error - revert the checkbox state
-                $this.prop('checked', !originalChecked);
-                alert('Error: ' + (response.error || 'Failed to update confirmation'));
-              }
-            }).fail(function() {
-              // Network error - revert the checkbox state
+        // Always show a checkbox for results that have been entered
+        const checkbox = $('<input type="checkbox"/>').prop('checked', m.confirmed).on('change', function(){
+          const $this = $(this);
+          const originalChecked = $this.prop('checked');
+          api('admin_confirm_result', {match_id: m.id, confirmed: originalChecked}).done(function(response) {
+            if (response.ok) {
+              // Success - immediately refresh to show the updated state
+              load();
+            } else {
+              // Error - revert the checkbox state
               $this.prop('checked', !originalChecked);
-              alert('Network error: Failed to update confirmation');
-            });
+              alert('Error: ' + (response.error || 'Failed to update confirmation'));
+            }
+          }).fail(function() {
+            // Network error - revert the checkbox state
+            $this.prop('checked', !originalChecked);
+            alert('Network error: Failed to update confirmation');
           });
-          confirmedCell.append(checkbox);
-        }
+        });
+        confirmedCell.append(checkbox);
       } else {
-        confirmedCell.text('—');
+        // No result entered yet - show disabled/greyed out checkbox
+        const checkbox = $('<input type="checkbox" disabled/>').prop('checked', false);
+        confirmedCell.append(checkbox);
       }
       tr.append(confirmedCell);
       
