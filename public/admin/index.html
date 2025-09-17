@@ -606,19 +606,19 @@ function render(res){
         // Always show a checkbox for results that have been entered
         const checkbox = $('<input type="checkbox"/>').prop('checked', m.confirmed).on('change', function(){
           const $this = $(this);
-          const originalChecked = $this.prop('checked');
-          api('admin_confirm_result', {match_id: m.id, confirmed: originalChecked}).done(function(response) {
+          const newChecked = $this.prop('checked');
+          api('admin_confirm_result', {match_id: m.id, confirmed: newChecked}).done(function(response) {
             if (response.ok) {
-              // Success - immediately refresh to show the updated state
-              load();
+              // Success - update the checkbox state locally and let auto-refresh handle the rest
+              $this.prop('checked', newChecked);
             } else {
               // Error - revert the checkbox state
-              $this.prop('checked', !originalChecked);
+              $this.prop('checked', !newChecked);
               alert('Error: ' + (response.error || 'Failed to update confirmation'));
             }
           }).fail(function() {
             // Network error - revert the checkbox state
-            $this.prop('checked', !originalChecked);
+            $this.prop('checked', !newChecked);
             alert('Network error: Failed to update confirmation');
           });
         });
