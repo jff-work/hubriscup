@@ -97,25 +97,53 @@
 
     <!-- Rounds Stage -->
     <div class="card" id="pairingsCard" style="display:none">
-      <div class="flex">
-        <strong>Pairings <span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
+      <!-- Tab navigation -->
+      <div class="tab-nav" style="margin-top:0; margin-bottom:15px;">
+        <div class="tab-btn round-tab" style="background:var(--card); color:var(--ink); cursor:default; border-bottom:2px solid var(--accent);">
+          <strong><span data-i18n="currentRound"></span> <span id="roundNo">-</span></strong>
+        </div>
+        <button class="tab-btn active" data-tab="pairings">Pairings</button>
+        <button class="tab-btn" data-tab="standings">Standings</button>
       </div>
-      <div style="overflow:auto; margin-top:15px">
-        <table class="table" id="pairingsTbl">
-          <thead>
-            <tr>
-              <th data-i18n="table"></th>
-              <th data-i18n="players"></th>
-              <th data-i18n="result"></th>
-              <th>Confirmed</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      
+      <!-- Pairings Tab Content -->
+      <div id="pairingsTab" class="tab-content active">
+        <div style="overflow:auto; margin-top:15px">
+          <table class="table" id="pairingsTbl">
+            <thead>
+              <tr>
+                <th data-i18n="table"></th>
+                <th data-i18n="players"></th>
+                <th data-i18n="result"></th>
+                <th>Confirmed</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="center" style="margin-top:15px">
+          <button id="nextRoundBtn" class="btn"><span data-i18n="createNextRound"></span></button>
+          <button id="finalizeBtn" class="btn"><span data-i18n="finalize"></span></button>
+        </div>
       </div>
-      <div class="center" style="margin-top:15px">
-        <button id="nextRoundBtn" class="btn"><span data-i18n="createNextRound"></span></button>
-        <button id="finalizeBtn" class="btn"><span data-i18n="finalize"></span></button>
+      
+      <!-- Standings Tab Content -->
+      <div id="standingsTab" class="tab-content">
+        <div style="overflow:auto; margin-top:15px">
+          <table class="table" id="adminRoundStandingsTbl">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th data-i18n="players"></th>
+                <th data-i18n="points"></th>
+                <th data-i18n="omw"></th>
+                <th data-i18n="gwp"></th>
+                <th data-i18n="ogw"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -184,6 +212,34 @@ function applyI18N(){
 }
 $('#langSel').on('change', function(){ I18N.setLang(this.value); applyI18N(); });
 document.addEventListener('langchange', applyI18N); applyI18N();
+
+function initTabs(){
+  $('.tab-btn').off('click').on('click', function(){
+    const tabName = $(this).data('tab');
+    
+    // Remove active class from all tabs and content
+    $('.tab-btn').removeClass('active');
+    $('.tab-content').removeClass('active');
+    
+    // Add active class to clicked tab and corresponding content
+    $(this).addClass('active');
+    $('#' + tabName + 'Tab').addClass('active');
+  });
+}
+
+function renderAdminRoundStandings(stand){
+  const tb = $('#adminRoundStandingsTbl tbody'); tb.empty();
+  (stand || []).forEach((r,idx)=>{
+    const tr = $('<tr/>');
+    tr.append($('<td/>').text(idx+1));
+    tr.append($('<td/>').text(r.name));
+    tr.append($('<td/>').text(r.mp));
+    tr.append($('<td/>').text(r.omw.toFixed(3)));
+    tr.append($('<td/>').text(r.gwp.toFixed(3)));
+    tr.append($('<td/>').text(r.ogw.toFixed(3)));
+    tb.append(tr);
+  });
+}
 
 const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), method:'POST', data:data||{}, dataType:'json'});
 
@@ -507,6 +563,8 @@ function render(res){
   // Pairings
   if(res.current_round){
     $('#pairingsCard').show(); $('#roundNo').text(res.current_round);
+    initTabs(); // Initialize tab functionality
+    if(res.standings && res.standings.length){ renderAdminRoundStandings(res.standings); }
     
     // Preserve input values before rebuilding table
     const preservedInputs = {};
@@ -607,7 +665,7 @@ function render(res){
         const checkbox = $('<input type="checkbox"/>').prop('checked', m.confirmed).on('change', function(){
           const $this = $(this);
           const newChecked = $this.prop('checked');
-          api('admin_confirm_result', {match_id: m.id, confirmed: newChecked}).done(function(response) {
+          api('admin_confirm_result', {match_id: m.id, confirmed: newChecked ? 1 : 0}).done(function(response) {
             if (response.ok) {
               // Success - update the checkbox state locally and let auto-refresh handle the rest
               $this.prop('checked', newChecked);
