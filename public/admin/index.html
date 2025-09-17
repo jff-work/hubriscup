@@ -252,9 +252,47 @@ const api = (a, data) => $.ajax({url:'/api/api.php?a='+encodeURIComponent(a), me
 
 function ping(){ /* ping functionality removed */ }
 
+let lastState = null;
+let isUserEditing = false;
+
 function load(){
   ping();
-  api('get_state', {view:'admin'}).done(render);
+  api('get_state', {view:'admin'}).done(function(data) {
+    // Check if user is currently editing (has focused input)
+    const focusedInput = document.activeElement;
+    isUserEditing = focusedInput && (focusedInput.classList.contains('result-input') || focusedInput.tagName === 'INPUT');
+    
+    // If user is editing, skip the full render to preserve focus
+    if (isUserEditing) {
+      // Only update non-interactive elements
+      updateNonInteractiveElements(data);
+      return;
+    }
+    
+    // Check if state has actually changed
+    const stateChanged = !lastState || JSON.stringify(data) !== JSON.stringify(lastState);
+    
+    if (stateChanged) {
+      lastState = data;
+      render(data);
+    }
+  });
+}
+
+function updateNonInteractiveElements(data) {
+  // Update status displays
+  $('#status').text(data.settings.status);
+  $('#status2').text(data.settings.status);
+  
+  // Update standings if they exist and are visible
+  if (data.standings && data.standings.length && $('#standingsCard').is(':visible')) {
+    renderAdminRoundStandings(data.standings);
+  }
+  
+  // Update round standings tab if visible
+  if (data.standings && data.standings.length && $('#standingsTab').hasClass('active')) {
+    renderAdminRoundStandings(data.standings);
+  }
 }
 
 function render(res){
@@ -766,6 +804,35 @@ function render(res){
     }
   });
 }
+
+// Add event listeners to track when user starts/stops editing
+$(document).on('focus', 'input.result-input', function() {
+  isUserEditing = true;
+});
+
+$(document).on('blur', 'input.result-input', function() {
+  // Small delay to allow for any programmatic focus changes
+  setTimeout(() => {
+    const focusedInput = document.activeElement;
+    isUserEditing = focusedInput && (focusedInput.classList.contains('result-input') || focusedInput.tagName === 'INPUT');
+  }, 100);
+});
+
+// Also track any input focus/blur
+$(document).on('focus', 'input', function() {
+  if ($(this).hasClass('result-input')) {
+    isUserEditing = true;
+  }
+});
+
+$(document).on('blur', 'input', function() {
+  if ($(this).hasClass('result-input')) {
+    setTimeout(() => {
+      const focusedInput = document.activeElement;
+      isUserEditing = focusedInput && (focusedInput.classList.contains('result-input') || focusedInput.tagName === 'INPUT');
+    }, 100);
+  }
+});
 
 setInterval(load, 3000);
 load();
