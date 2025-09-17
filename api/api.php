@@ -259,6 +259,22 @@ switch($a){
     j(['ok'=>true]);
     break;
 
+  case 'admin_confirm_result':
+    $mid = intv($_POST['match_id'] ?? 0);
+    $confirmed = intv($_POST['confirmed'] ?? 0);
+    $m = one("SELECT * FROM matches WHERE id=?", [$mid]);
+    if(!$m) j(['ok'=>false,'error'=>'no match']);
+    if($m['is_bye']) j(['ok'=>false,'error'=>'bye match']);
+    
+    // Admin can confirm/unconfirm any result that has been entered
+    if($m['p1_game_wins']===null || $m['p2_game_wins']===null) {
+      j(['ok'=>false,'error'=>'no result to confirm']);
+    }
+    
+    q("UPDATE matches SET confirmed=?, updated_at=? WHERE id=?", [$confirmed,date('c'),$mid]);
+    j(['ok'=>true]);
+    break;
+
   case 'drop_player':
     $pid = intv($_POST['player_id'] ?? 0);
     q("UPDATE players SET dropped=1, updated_at=? WHERE id=?", [date('c'),$pid]);

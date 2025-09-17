@@ -94,9 +94,9 @@
               <div class="result-label">Draws</div>
             </div>
             <div class="result-inputs">
-              <input type="number" id="gYou" min="0" max="3" value="2" class="result-input">
+              <input type="number" id="gYou" min="0" max="2" value="2" class="result-input">
               <span class="result-separator">:</span>
-              <input type="number" id="gOpp" min="0" max="3" value="0" class="result-input">
+              <input type="number" id="gOpp" min="0" max="2" value="0" class="result-input">
               <span class="result-separator">:</span>
               <input type="number" id="gDraws" min="0" max="3" value="0" class="result-input">
             </div>
@@ -521,8 +521,8 @@ function renderRound(my, round, match, matchState, oppReport){
         return;
       }
       
-      if (gy < 0 || go < 0 || gd < 0) {
-        alert('Invalid result. All values must be 0 or positive.');
+      if (gy < 0 || gy > 2 || go < 0 || go > 2 || gd < 0 || gd > 3) {
+        alert('Invalid result. Game wins must be between 0 and 2, draws between 0 and 3.');
         return;
       }
       
