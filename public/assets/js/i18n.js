@@ -89,7 +89,7 @@ window.I18N = {
       createR1: "Create Round 1",
       nextRound: "Next round",
       createNextRound: "Create next round",
-      finalize: "Create final standings before Top 8",
+      finalize: "Create standings before Top 8",
       createTop8: "Create Top 8 draft",
       startTop8: "Start Top 8",
       top8: "Top 8",
