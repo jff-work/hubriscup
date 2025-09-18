@@ -158,6 +158,21 @@ switch($a){
     j(['ok'=>true]);
     break;
 
+  case 'get_zugesagt':
+    // Return zugesagt.json content
+    $zugesagtPath = __DIR__.'/../zugesagt.json';
+    if(file_exists($zugesagtPath)){
+      $zugesagt = json_decode(file_get_contents($zugesagtPath), true);
+      if(is_array($zugesagt)){
+        j(['ok'=>true, 'players'=>$zugesagt]);
+      } else {
+        j(['ok'=>false, 'error'=>'Invalid zugesagt.json format']);
+      }
+    } else {
+      j(['ok'=>false, 'error'=>'zugesagt.json not found']);
+    }
+    break;
+
   case 'new_event':
     // Clear all data and reset to preparation stage
     q("DELETE FROM players");

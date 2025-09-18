@@ -29,6 +29,75 @@
       -webkit-appearance: none;
       margin: 0;
     }
+    
+    /* Popup overlay styles */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .popup-content {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-width: 400px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .popup-header h3 {
+      margin: 0;
+      color: var(--ink);
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--ink);
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .close-btn:hover {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    
+    .popup-body {
+      padding: 20px;
+    }
+    
+    .popup-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 15px 20px;
+      border-top: 1px solid var(--border);
+    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="/assets/js/i18n.js"></script>
@@ -63,6 +132,9 @@
           <button id="addBtn"><span data-i18n="addPlayer"></span></button>
         </div>
         <div class="center" style="margin-top:15px">
+          <button id="importPlayersBtn" class="secondary">Import Players</button>
+        </div>
+        <div class="center" style="margin-top:15px">
           <button id="startBtn" class="btn"><span data-i18n="startEvent"></span></button>
         </div>
         <ul id="playersList" class="list"></ul>
@@ -78,10 +150,10 @@
           <input id="newPlayer2" placeholder="Name">
           <button id="addBtn2"><span data-i18n="addPlayer"></span></button>
         </div>
+        <ul id="playersList2" class="list"></ul>
         <div class="center" style="margin-top:15px">
           <button id="podsBtn" class="btn"><span data-i18n="createPods"></span></button>
         </div>
-        <ul id="playersList2" class="list"></ul>
       </div>
     </div>
 
@@ -205,6 +277,24 @@
     </div>
   </div>
 
+  <!-- Import Players Popup -->
+  <div id="importPopup" class="popup-overlay" style="display:none;">
+    <div class="popup-content">
+      <div class="popup-header">
+        <h3>Import Players</h3>
+        <button id="closeImportPopup" class="close-btn">&times;</button>
+      </div>
+      <div class="popup-body">
+        <div class="small" style="margin-bottom:10px;">Enter player names (one per line):</div>
+        <textarea id="importPlayersText" placeholder="Player 1&#10;Player 2&#10;Player 3..." style="width:100%; min-height:200px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:8px; border-radius:4px; font-family:inherit; resize:vertical;"></textarea>
+      </div>
+      <div class="popup-footer">
+        <button id="cancelImport" class="ghost">Cancel</button>
+        <button id="confirmImport" class="btn">Import Players</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 function applyI18N(){
   $('[data-i18n]').each(function(){ const k=$(this).data('i18n'); $(this).text(I18N.t(k)); });
@@ -323,6 +413,52 @@ function render(res){
   $('#addBtn').off('click').on('click',()=>{
     const name = $('#newPlayer').val().trim(); if(!name) return;
     api('add_player',{name}).done(()=>{$('#newPlayer').val(''); load();});
+  });
+  // Import popup functionality
+  $('#importPlayersBtn').off('click').on('click',()=>{
+    // Load zugesagt.json content and pre-fill the textarea
+    api('get_zugesagt', {}).done(function(response) {
+      if(response.ok && response.players && Array.isArray(response.players)) {
+        $('#importPlayersText').val(response.players.join('\n'));
+      } else {
+        $('#importPlayersText').val('');
+      }
+    }).fail(function() {
+      // If zugesagt.json doesn't exist or fails to load, start with empty textarea
+      $('#importPlayersText').val('');
+    });
+    $('#importPopup').show();
+  });
+  
+  $('#closeImportPopup, #cancelImport').off('click').on('click',()=>{
+    $('#importPopup').hide();
+  });
+  
+  $('#confirmImport').off('click').on('click',()=>{
+    const playersText = $('#importPlayersText').val().trim();
+    if(!playersText) {
+      $('#importPopup').hide();
+      return;
+    }
+    
+    // Split by line breaks and filter out empty strings
+    const players = playersText.split('\n').filter(name => name.trim() !== '');
+    if(players.length === 0) {
+      $('#importPopup').hide();
+      return;
+    }
+    
+    // Import all players
+    let completed = 0;
+    players.forEach(playerName => {
+      api('add_player', {name: playerName.trim()}).done(() => {
+        completed++;
+        if(completed === players.length) {
+          $('#importPopup').hide();
+          load();
+        }
+      });
+    });
   });
   $('#addBtn2').off('click').on('click',()=>{
     const name = $('#newPlayer2').val().trim(); if(!name) return;
