@@ -244,6 +244,26 @@
       </div>
     </div>
 
+    <!-- Final Standings Stage (Tournament Complete) -->
+    <div class="card" id="finalStandingsCard" style="display:none">
+      <div class="flex"><strong>Final Standings</strong></div>
+      <div style="overflow:auto">
+        <table class="table" id="finalStandingsTbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th data-i18n="players"></th>
+              <th data-i18n="points"></th>
+              <th data-i18n="omw"></th>
+              <th data-i18n="gwp"></th>
+              <th data-i18n="ogw"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Top 8 Creation Stage -->
     <div class="card" id="top8CreationCard" style="display:none">
       <div class="flex"><strong>Create Top 8</strong></div>
@@ -948,20 +968,36 @@ function render(res){
 
   // Standings
   if(res.standings && res.standings.length){
-    $('#standingsCard').show();
-    const tb = $('#standingsTbl tbody').empty();
-    res.standings.forEach((r,idx)=>{
-      const tr = $('<tr/>');
-      tr.append($('<td/>').text(idx+1));
-      tr.append($('<td/>').text(r.name));
-      tr.append($('<td/>').text(r.mp));
-      tr.append($('<td/>').text(r.omw.toFixed(3)));
-      tr.append($('<td/>').text(r.gwp.toFixed(3)));
-      tr.append($('<td/>').text(r.ogw.toFixed(3)));
-      tb.append(tr);
-    });
+    if(status==='standings'){
+      $('#standingsCard').show();
+      const tb = $('#standingsTbl tbody').empty();
+      res.standings.forEach((r,idx)=>{
+        const tr = $('<tr/>');
+        tr.append($('<td/>').text(idx+1));
+        tr.append($('<td/>').text(r.name));
+        tr.append($('<td/>').text(r.mp));
+        tr.append($('<td/>').text(r.omw.toFixed(3)));
+        tr.append($('<td/>').text(r.gwp.toFixed(3)));
+        tr.append($('<td/>').text(r.ogw.toFixed(3)));
+        tb.append(tr);
+      });
+    } else if(status==='complete'){
+      $('#finalStandingsCard').show();
+      const tb = $('#finalStandingsTbl tbody').empty();
+      res.standings.forEach((r,idx)=>{
+        const tr = $('<tr/>');
+        tr.append($('<td/>').text(idx+1));
+        tr.append($('<td/>').text(r.name));
+        tr.append($('<td/>').text(r.mp));
+        tr.append($('<td/>').text(r.omw.toFixed(3)));
+        tr.append($('<td/>').text(r.gwp.toFixed(3)));
+        tr.append($('<td/>').text(r.ogw.toFixed(3)));
+        tb.append(tr);
+      });
+    }
   } else {
     $('#standingsCard').hide();
+    $('#finalStandingsCard').hide();
   }
 
   // Show/hide stages based on status - only show one stage at a time
@@ -970,6 +1006,7 @@ function render(res){
   $('#podsStage').toggle(status==='pods');
   $('#pairingsCard').toggle(status==='round' || status==='top8');
   $('#standingsCard').toggle(status==='standings');
+  $('#finalStandingsCard').toggle(status==='complete');
   $('#top8CreationCard').toggle(status==='standings');
 
   // Buttons based on status
