@@ -63,6 +63,8 @@ switch($a){
           'p1_id'=>$m['p1_id']!==null?intval($m['p1_id']):null,
           'p2_id'=>$m['p2_id']!==null?intval($m['p2_id']):null,
           'p1_name'=>$m['p1_name'],'p2_name'=>$m['p2_name'],
+          'p1_no_phone'=>intval($m['p1_no_phone'])==1,
+          'p2_no_phone'=>intval($m['p2_no_phone'])==1,
           'p1_game_wins'=>$m['p1_game_wins']!==null?intval($m['p1_game_wins']):null,
           'p2_game_wins'=>$m['p2_game_wins']!==null?intval($m['p2_game_wins']):null,
           'draws'=>$m['draws']!==null?intval($m['draws']):null,

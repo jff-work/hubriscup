@@ -887,7 +887,17 @@ function render(res){
       tr.append($('<td/>').text(m.table_no || '-'));
       
       // Player 1 column
-      tr.append($('<td/>').text(m.p1_name || '-'));
+      const p1Cell = $('<td/>');
+      if (m.p1_name) {
+        if (m.p1_no_phone) {
+          p1Cell.html(m.p1_name + ' <span class="badge orange" style="margin-left: 5px; font-size: 10px;">📵</span>');
+        } else {
+          p1Cell.text(m.p1_name);
+        }
+      } else {
+        p1Cell.text('-');
+      }
+      tr.append(p1Cell);
       
       // Score 1 column
       const score1Cell = $('<td/>');
@@ -909,7 +919,19 @@ function render(res){
       tr.append($('<td/>').text('VS'));
       
       // Player 2 column
-      tr.append($('<td/>').text(m.p2_name || (m.is_bye?'(BYE)':'-')));
+      const p2Cell = $('<td/>');
+      if (m.is_bye) {
+        p2Cell.text('(BYE)');
+      } else if (m.p2_name) {
+        if (m.p2_no_phone) {
+          p2Cell.html(m.p2_name + ' <span class="badge orange" style="margin-left: 5px; font-size: 10px;">📵</span>');
+        } else {
+          p2Cell.text(m.p2_name);
+        }
+      } else {
+        p2Cell.text('-');
+      }
+      tr.append(p2Cell);
       
       // Score 2 column
       const score2Cell = $('<td/>');

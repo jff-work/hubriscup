@@ -113,7 +113,7 @@ function cross_pairs_for_pod($podPlayers){
 }
 
 function round_matches($round){
-  return all("SELECT m.*, p1.name AS p1_name, p2.name AS p2_name
+  return all("SELECT m.*, p1.name AS p1_name, p2.name AS p2_name, p1.no_phone AS p1_no_phone, p2.no_phone AS p2_no_phone
     FROM matches m
     LEFT JOIN players p1 ON p1.id=m.p1_id
     LEFT JOIN players p2 ON p2.id=m.p2_id
