@@ -685,8 +685,14 @@ function renderState(res){
 
   if(!my){
     $('#playerInfo').hide();
-    renderPlayerSelect(players);
-    showOnly(['.welcome-card', '#playerSelect']);
+    if(status==='pre'){
+      // Before tournament starts, only show welcome card
+      showOnly(['.welcome-card']);
+    } else {
+      // After tournament starts, allow player selection
+      renderPlayerSelect(players);
+      showOnly(['.welcome-card', '#playerSelect']);
+    }
     return;
   }
 
@@ -697,12 +703,8 @@ function renderState(res){
 
   // Strict flow control: Preparation → Check-in → Pods → Rounds → Standings → Top 8
   if(status==='pre'){
-    // Preparation stage: show only welcome card and player selection (no check-in until tournament starts)
-    if(my){
-      showOnly(['.welcome-card']);
-    } else {
-      showOnly(['.welcome-card', '#playerSelect']);
-    }
+    // Preparation stage: show only welcome card (no player selection until tournament starts)
+    showOnly(['.welcome-card']);
   } else if(status==='checkin'){
     // Check-in stage: show check-in interface
     if(!my.checked_in){
