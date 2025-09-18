@@ -231,6 +231,51 @@ function renderPlayerSelect(players){
   });
 }
 
+function renderTop8Seat(players, my){
+  if(!my || my.top8_seat==null){ $('#seatCard').hide(); return; }
+  $('#seatCard').show();
+  $('#seatText').text(I18N.t('top8') + ' Seat ' + my.top8_seat);
+  
+  // Get all Top 8 players
+  const top8Players = players.filter(p => p.top8_seat !== null && p.top8_seat !== undefined)
+    .sort((a, b) => a.top8_seat - b.top8_seat);
+  
+  const vis = $('#draftVis'); vis.empty().addClass('draft-table');
+  
+  // Create seat map for easy lookup
+  const seatMap = {};
+  top8Players.forEach(p => { seatMap[p.top8_seat] = p; });
+  
+  // For Top 8: 4 seats on left (1,2,3,4), 4 seats on right (8,7,6,5)
+  const leftSide = $('<div/>').addClass('draft-side');
+  const rightSide = $('<div/>').addClass('draft-side');
+  
+  // Left side: 1, 2, 3, 4
+  [1, 2, 3, 4].forEach(seatNum => {
+    const player = seatMap[seatNum];
+    if(player){
+      const seatDiv = $('<div/>').addClass('seat').toggleClass('me', player.top8_seat==my.top8_seat);
+      seatDiv.append($('<span/>').addClass('pos').text('S'+player.top8_seat));
+      seatDiv.append($('<span/>').addClass('name').text(player.name));
+      leftSide.append(seatDiv);
+    }
+  });
+  
+  // Right side: 8, 7, 6, 5 (reverse order)
+  [8, 7, 6, 5].forEach(seatNum => {
+    const player = seatMap[seatNum];
+    if(player){
+      const seatDiv = $('<div/>').addClass('seat').toggleClass('me', player.top8_seat==my.top8_seat);
+      seatDiv.append($('<span/>').addClass('pos').text('S'+player.top8_seat));
+      seatDiv.append($('<span/>').addClass('name').text(player.name));
+      rightSide.append(seatDiv);
+    }
+  });
+  
+  vis.append(leftSide);
+  vis.append(rightSide);
+}
+
 function renderSeat(pods, my){
   if(!my || my.pod==null){ $('#seatCard').hide(); return; }
   $('#seatCard').show();
@@ -680,13 +725,31 @@ function renderState(res){
     showOnly(['#roundCard']);
     initTabs(); // Initialize tab functionality
     if(res.standings && res.standings.length){ renderRoundStandings(res.standings); }
+  } else if(status==='top8_draft'){
+    // Top 8 draft stage: show seating for Top 8 players, standings for others
+    if(my.top8_seat !== null && my.top8_seat !== undefined){
+      // Player made Top 8 - show draft seating like in pods stage
+      showOnly(['#seatCard']);
+      renderTop8Seat(res.players, my);
+    } else {
+      // Player didn't make Top 8 - show standings only
+      showOnly(['#standingsCard']);
+      if(res.standings && res.standings.length){ renderStandings(res.standings); }
+    }
   } else if(status==='top8'){
-    // Top 8 stage: show Top 8 matches
-    const match = res.my_match || null;
-    renderRound(my, res.current_round, match, res.match_state, res.opp_report);
-    showOnly(['#roundCard']);
-    initTabs(); // Initialize tab functionality
-    if(res.standings && res.standings.length){ renderRoundStandings(res.standings); }
+    // Top 8 play stage: differentiate between Top 8 players and others
+    if(my.top8_seat !== null && my.top8_seat !== undefined){
+      // Player made Top 8 - show normal result entry
+      const match = res.my_match || null;
+      renderRound(my, res.current_round, match, res.match_state, res.opp_report);
+      showOnly(['#roundCard']);
+      initTabs(); // Initialize tab functionality
+      if(res.standings && res.standings.length){ renderRoundStandings(res.standings); }
+    } else {
+      // Player didn't make Top 8 - show standings only
+      showOnly(['#standingsCard']);
+      if(res.standings && res.standings.length){ renderStandings(res.standings); }
+    }
   } else if(status==='standings' || status==='complete'){
     // Standings stage: show final standings
     showOnly(['#standingsCard']);

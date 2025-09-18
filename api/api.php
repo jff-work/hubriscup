@@ -30,8 +30,16 @@ switch($a){
     $cur = intval(get_setting('current_round'));
     $matches = $cur>0 ? round_matches($cur) : [];
     $stand = [];
-    if(in_array(get_setting('status'), ['standings','round','top8','complete'])){
+    if(in_array(get_setting('status'), ['standings','round','top8','top8_draft','complete'])){
       $stand = standings(null);
+    }
+    
+    // For top 8 statuses, also get Swiss standings (pre-top 8) for non-top 8 players
+    $swiss_stand = [];
+    if(in_array(get_setting('status'), ['top8_draft', 'top8'])){
+      // Get the last round of Swiss before top 8 (usually round 5 or 6)
+      $total_rounds = intval(get_setting('total_rounds'));
+      $swiss_stand = standings($total_rounds);
     }
 
     $payload = [
@@ -64,10 +72,28 @@ switch($a){
           'top8_phase'=>$m['top8_phase']
         ];
       }, $matches),
-      'standings'=> $stand
+      'standings'=> $stand,
+      'swiss_standings'=> $swiss_stand
     ];
 
     if($me){
+      // Determine which standings this player should see during top 8 phases
+      if(in_array(get_setting('status'), ['top8_draft', 'top8'])){
+        $myPlayer = null;
+        foreach($players as $p){
+          if(intval($p['id']) == $me){
+            $myPlayer = $p;
+            break;
+          }
+        }
+        
+        // If player has a top8_seat, they are in top 8 and should see current standings
+        // If not, they should see Swiss standings (final pre-top 8 standings)
+        if($myPlayer && $myPlayer['top8_seat'] === null){
+          $payload['standings'] = $swiss_stand;
+        }
+      }
+      
       $payload['my_match'] = null;
       foreach($matches as $m){
         if(intval($m['p1_id'])==$me || intval($m['p2_id'])==$me){
