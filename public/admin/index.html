@@ -782,8 +782,8 @@ function render(res){
         score1Input.val(m.p1_game_wins);
       }
       if(m.confirmed) {
-        // Make confirmed input disabled and greyed out
-        score1Input.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+        // Make confirmed input disabled and greyed out (but still editable via Edit button)
+        score1Input.prop('disabled', true).css('opacity', '0.6').css('background', '#1a1a1a').css('color', '#888');
       } else if(m.p1_game_wins != null || m.p2_game_wins != null || m.draws != null) {
         // Make saved but unconfirmed inputs appear disabled but editable on click
         score1Input.prop('disabled', true).css('opacity', '0.7').css('background', '#1a1a1a').css('color', '#999');
@@ -804,8 +804,8 @@ function render(res){
         score2Input.val(m.p2_game_wins);
       }
       if(m.confirmed) {
-        // Make confirmed input disabled and greyed out
-        score2Input.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+        // Make confirmed input disabled and greyed out (but still editable via Edit button)
+        score2Input.prop('disabled', true).css('opacity', '0.6').css('background', '#1a1a1a').css('color', '#888');
       } else if(m.p1_game_wins != null || m.p2_game_wins != null || m.draws != null) {
         // Make saved but unconfirmed inputs appear disabled but editable on click
         score2Input.prop('disabled', true).css('opacity', '0.7').css('background', '#1a1a1a').css('color', '#999');
@@ -820,8 +820,8 @@ function render(res){
         drawsInput.val(m.draws);
       }
       if(m.confirmed) {
-        // Make confirmed input disabled and greyed out
-        drawsInput.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+        // Make confirmed input disabled and greyed out (but still editable via Edit button)
+        drawsInput.prop('disabled', true).css('opacity', '0.6').css('background', '#1a1a1a').css('color', '#888');
       } else if(m.p1_game_wins != null || m.p2_game_wins != null || m.draws != null) {
         // Make saved but unconfirmed inputs appear disabled but editable on click
         drawsInput.prop('disabled', true).css('opacity', '0.7').css('background', '#1a1a1a').css('color', '#999');
@@ -829,37 +829,20 @@ function render(res){
       drawsCell.append(drawsInput);
       tr.append(drawsCell);
       
-      // Add save/edit button for non-confirmed results
-      if(!m.confirmed) {
-        const saveCell = $('<td/>');
-        let saveBtn;
-        
-        if(m.p1_game_wins != null || m.p2_game_wins != null || m.draws != null) {
-          // Show Edit button for saved results
-          saveBtn = $('<button class="ghost small-btn"/>').text('Edit').on('click', function(){
-            // Enable inputs for editing
-            score1Input.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
-            score2Input.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
-            drawsInput.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
-            
-            // Change button to Save
-            $(this).text('Save').off('click').on('click', function(){
-              const p1Wins = parseInt(score1Input.val()) || 0;
-              const p2Wins = parseInt(score2Input.val()) || 0;
-              const draws = parseInt(drawsInput.val()) || 0;
-              
-              // Basic validation
-              if (p1Wins < 0 || p1Wins > 2 || p2Wins < 0 || p2Wins > 2 || draws < 0 || draws > 3) {
-                alert('Invalid result. Game wins must be between 0 and 2, draws between 0 and 3.');
-                return;
-              }
-              
-              api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
-            });
-          });
-        } else {
-          // Show Save button for new results
-          saveBtn = $('<button class="ghost small-btn"/>').text('Save').on('click', function(){
+      // Add save/edit button for all results
+      const saveCell = $('<td/>');
+      let saveBtn;
+      
+      if(m.p1_game_wins != null || m.p2_game_wins != null || m.draws != null) {
+        // Show Edit button for saved results (confirmed or not)
+        saveBtn = $('<button class="ghost small-btn"/>').text('Edit').on('click', function(){
+          // Enable inputs for editing
+          score1Input.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
+          score2Input.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
+          drawsInput.prop('disabled', false).css('opacity', '1').css('background', '#0f1318').css('color', '#e7edf4');
+          
+          // Change button to Save
+          $(this).text('Save').off('click').on('click', function(){
             const p1Wins = parseInt(score1Input.val()) || 0;
             const p2Wins = parseInt(score2Input.val()) || 0;
             const draws = parseInt(drawsInput.val()) || 0;
@@ -872,14 +855,26 @@ function render(res){
             
             api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
           });
-        }
-        
-        saveCell.append(saveBtn);
-        tr.append(saveCell);
+        });
       } else {
-        // For confirmed results, add empty cell to maintain column alignment
-        tr.append($('<td/>'));
+        // Show Save button for new results
+        saveBtn = $('<button class="ghost small-btn"/>').text('Save').on('click', function(){
+          const p1Wins = parseInt(score1Input.val()) || 0;
+          const p2Wins = parseInt(score2Input.val()) || 0;
+          const draws = parseInt(drawsInput.val()) || 0;
+          
+          // Basic validation
+          if (p1Wins < 0 || p1Wins > 2 || p2Wins < 0 || p2Wins > 2 || draws < 0 || draws > 3) {
+            alert('Invalid result. Game wins must be between 0 and 2, draws between 0 and 3.');
+            return;
+          }
+          
+          api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+        });
       }
+      
+      saveCell.append(saveBtn);
+      tr.append(saveCell);
       
       // Confirmed column
       const confirmedCell = $('<td/>');
