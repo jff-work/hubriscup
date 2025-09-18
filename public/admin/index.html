@@ -276,6 +276,8 @@
                 <th>Draws</th>
                 <th>Save</th>
                 <th>Confirmed</th>
+                <th>Drop P1</th>
+                <th>Drop P2</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -299,6 +301,7 @@
                 <th data-i18n="omw"></th>
                 <th data-i18n="gwp"></th>
                 <th data-i18n="ogw"></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -320,6 +323,7 @@
               <th data-i18n="omw"></th>
               <th data-i18n="gwp"></th>
               <th data-i18n="ogw"></th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -467,6 +471,37 @@ function renderAdminRoundStandings(stand){
     tr.append($('<td/>').text(r.omw.toFixed(3)));
     tr.append($('<td/>').text(r.gwp.toFixed(3)));
     tr.append($('<td/>').text(r.ogw.toFixed(3)));
+    
+    // Actions column with drop button
+    const actionsCell = $('<td/>');
+    
+    // Check if this player is already dropped
+    const player = (lastState?.players || []).find(p => p.id === r.id);
+    const isDropped = player && player.dropped;
+    
+    if (!isDropped && idx >= 8) {
+      // Only show drop button for players not in top 8 and not already dropped
+      const dropBtn = $('<button class="ghost small-btn"/>').text('Drop').on('click', function(){
+        if (confirm(`Drop ${r.name} from the tournament? The next player will move up in standings.`)) {
+          api('drop_player', {player_id: r.id}).done(function(response) {
+            if (response.ok) {
+              load(); // Refresh to update standings
+            } else {
+              alert('Error: ' + (response.error || 'Failed to drop player'));
+            }
+          }).fail(function() {
+            alert('Network error: Failed to drop player');
+          });
+        }
+      });
+      actionsCell.append(dropBtn);
+    } else if (isDropped) {
+      actionsCell.append($('<span class="badge orange"/>').text('Dropped'));
+    } else if (idx < 8) {
+      actionsCell.append($('<span class="badge green"/>').text('Top 8'));
+    }
+    
+    tr.append(actionsCell);
     tb.append(tr);
   });
 }
@@ -1106,6 +1141,92 @@ function render(res){
       }
       tr.append(confirmedCell);
       
+      // Drop Player 1 column
+      const dropP1Cell = $('<td/>');
+      if (m.p1_id && !m.is_bye) {
+        // Check if player is already dropped
+        const p1Player = (res.players || []).find(p => p.id === m.p1_id);
+        const isP1Dropped = p1Player && p1Player.dropped;
+        
+        const dropP1Checkbox = $('<input type="checkbox"/>').prop('checked', isP1Dropped).on('change', function(){
+          const $this = $(this);
+          const willDrop = $this.prop('checked');
+          
+          if (willDrop) {
+            if (confirm(`Drop ${m.p1_name} from the tournament?`)) {
+              api('drop_player', {player_id: m.p1_id}).done(function(response) {
+                if (response.ok) {
+                  $this.prop('checked', true);
+                  load(); // Refresh to update standings
+                } else {
+                  $this.prop('checked', false);
+                  alert('Error: ' + (response.error || 'Failed to drop player'));
+                }
+              }).fail(function() {
+                $this.prop('checked', false);
+                alert('Network error: Failed to drop player');
+              });
+            } else {
+              $this.prop('checked', false);
+            }
+          } else {
+            // Cannot un-drop players
+            alert('Players cannot be un-dropped once dropped');
+            $this.prop('checked', true);
+          }
+        });
+        
+        if (isP1Dropped) {
+          dropP1Checkbox.prop('disabled', true).css('opacity', '0.6');
+        }
+        
+        dropP1Cell.append(dropP1Checkbox);
+      }
+      tr.append(dropP1Cell);
+      
+      // Drop Player 2 column
+      const dropP2Cell = $('<td/>');
+      if (m.p2_id && !m.is_bye) {
+        // Check if player is already dropped
+        const p2Player = (res.players || []).find(p => p.id === m.p2_id);
+        const isP2Dropped = p2Player && p2Player.dropped;
+        
+        const dropP2Checkbox = $('<input type="checkbox"/>').prop('checked', isP2Dropped).on('change', function(){
+          const $this = $(this);
+          const willDrop = $this.prop('checked');
+          
+          if (willDrop) {
+            if (confirm(`Drop ${m.p2_name} from the tournament?`)) {
+              api('drop_player', {player_id: m.p2_id}).done(function(response) {
+                if (response.ok) {
+                  $this.prop('checked', true);
+                  load(); // Refresh to update standings
+                } else {
+                  $this.prop('checked', false);
+                  alert('Error: ' + (response.error || 'Failed to drop player'));
+                }
+              }).fail(function() {
+                $this.prop('checked', false);
+                alert('Network error: Failed to drop player');
+              });
+            } else {
+              $this.prop('checked', false);
+            }
+          } else {
+            // Cannot un-drop players
+            alert('Players cannot be un-dropped once dropped');
+            $this.prop('checked', true);
+          }
+        });
+        
+        if (isP2Dropped) {
+          dropP2Checkbox.prop('disabled', true).css('opacity', '0.6');
+        }
+        
+        dropP2Cell.append(dropP2Checkbox);
+      }
+      tr.append(dropP2Cell);
+      
       tb.append(tr);
     });
 
@@ -1160,6 +1281,37 @@ function render(res){
         tr.append($('<td/>').text(r.omw.toFixed(3)));
         tr.append($('<td/>').text(r.gwp.toFixed(3)));
         tr.append($('<td/>').text(r.ogw.toFixed(3)));
+        
+        // Actions column with drop button
+        const actionsCell = $('<td/>');
+        
+        // Check if this player is already dropped
+        const player = (res.players || []).find(p => p.id === r.id);
+        const isDropped = player && player.dropped;
+        
+        if (!isDropped && idx >= 8) {
+          // Only show drop button for players not in top 8 and not already dropped
+          const dropBtn = $('<button class="ghost small-btn"/>').text('Drop').on('click', function(){
+            if (confirm(`Drop ${r.name} from the tournament? The next player will move up in standings.`)) {
+              api('drop_player', {player_id: r.id}).done(function(response) {
+                if (response.ok) {
+                  load(); // Refresh to update standings
+                } else {
+                  alert('Error: ' + (response.error || 'Failed to drop player'));
+                }
+              }).fail(function() {
+                alert('Network error: Failed to drop player');
+              });
+            }
+          });
+          actionsCell.append(dropBtn);
+        } else if (isDropped) {
+          actionsCell.append($('<span class="badge orange"/>').text('Dropped'));
+        } else if (idx < 8) {
+          actionsCell.append($('<span class="badge green"/>').text('Top 8'));
+        }
+        
+        tr.append(actionsCell);
         tb.append(tr);
       });
     } else if(status==='complete'){

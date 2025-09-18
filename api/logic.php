@@ -257,7 +257,7 @@ function create_round($round){
 
 /** Standings (MTR-style tiebreakers: MP → OMW% → GWP% → OGW% with 33% floors) */
 function standings($upToRound=null){
-  $players = all("SELECT id,name FROM players WHERE active=1");
+  $players = all("SELECT id,name FROM players WHERE active=1 AND dropped=0");
   $mp = []; $gwp=[]; $omw=[]; $ogw=[]; $pmw=[]; $oppList=[];
   
   // Calculate match points and game win percentages

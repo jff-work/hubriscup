@@ -327,8 +327,26 @@ switch($a){
 
   case 'drop_player':
     $pid = intv($_POST['player_id'] ?? 0);
+    if($pid <= 0) j(['ok'=>false,'error'=>'Invalid player ID']);
+    
+    // Check if player exists and is not already dropped
+    $player = one("SELECT * FROM players WHERE id=?", [$pid]);
+    if(!$player) j(['ok'=>false,'error'=>'Player not found']);
+    if(intval($player['dropped']) == 1) j(['ok'=>false,'error'=>'Player is already dropped']);
+    
+    // Check if player is in any active matches for current round
+    $cur_round = intval(get_setting('current_round'));
+    $status = get_setting('status');
+    if($status === 'round' || $status === 'top8') {
+      $active_match = one("SELECT * FROM matches WHERE round=? AND (p1_id=? OR p2_id=?) AND confirmed=0", [$cur_round, $pid, $pid]);
+      if($active_match && !intval($active_match['is_bye'])) {
+        j(['ok'=>false,'error'=>'Cannot drop player with active unconfirmed match. Please confirm or edit the match result first.']);
+      }
+    }
+    
+    // Drop the player
     q("UPDATE players SET dropped=1, updated_at=? WHERE id=?", [date('c'),$pid]);
-    j(['ok'=>true]);
+    j(['ok'=>true,'message'=>'Player dropped successfully']);
     break;
 
   case 'next_round':
