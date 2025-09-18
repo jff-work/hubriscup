@@ -191,6 +191,7 @@
                 <th>Player 2</th>
                 <th>Score 2</th>
                 <th>Draws</th>
+                <th>Save</th>
                 <th>Confirmed</th>
               </tr>
             </thead>
@@ -819,20 +820,10 @@ function render(res){
       drawsCell.append(drawsInput);
       tr.append(drawsCell);
       
-      // Add event handlers for the input fields (only for non-confirmed results)
+      // Add save button for non-confirmed results
       if(!m.confirmed) {
-        score1Input.on('change', function() {
-          updateResult(m.id);
-        });
-        score2Input.on('change', function() {
-          updateResult(m.id);
-        });
-        drawsInput.on('change', function() {
-          updateResult(m.id);
-        });
-        
-        // Function to update result
-        function updateResult(matchId) {
+        const saveCell = $('<td/>');
+        const saveBtn = $('<button class="ghost small-btn"/>').text('Save').on('click', function(){
           const p1Wins = parseInt(score1Input.val()) || 0;
           const p2Wins = parseInt(score2Input.val()) || 0;
           const draws = parseInt(drawsInput.val()) || 0;
@@ -843,8 +834,13 @@ function render(res){
             return;
           }
           
-          api('admin_edit_result', {match_id: matchId, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
-        }
+          api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+        });
+        saveCell.append(saveBtn);
+        tr.append(saveCell);
+      } else {
+        // For confirmed results, add empty cell to maintain column alignment
+        tr.append($('<td/>'));
       }
       
       // Confirmed column
