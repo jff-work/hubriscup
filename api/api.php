@@ -327,6 +327,11 @@ switch($a){
     j(create_top8());
     break;
 
+  case 'start_top8':
+    set_setting('status','top8');
+    j(['ok'=>true]);
+    break;
+
   /** Debug helpers **/
   case 'debug_populate':
     $n = intv($_POST['n'] ?? 16);

@@ -272,6 +272,15 @@
       </div>
     </div>
 
+    <!-- Top 8 Draft Stage -->
+    <div class="card" id="top8DraftCard" style="display:none">
+      <div class="flex"><strong>Top 8 Draft</strong></div>
+      <div id="top8DraftVisuals" class="stack" style="margin-top:15px"></div>
+      <div class="center" style="margin-top:15px">
+        <button id="startTop8Btn" class="btn"><span data-i18n="startTop8"></span></button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="flex"><strong data-i18n="debug"></strong></div>
       <div class="grid three">
@@ -762,6 +771,55 @@ function render(res){
   card.append(table);
   podsArea.append(card);
 
+  // Top 8 Draft Visualization
+  if(status === 'top8_draft') {
+    const top8DraftVisuals = $('#top8DraftVisuals').empty();
+    
+    // Get top 8 players with their seats
+    const top8Players = (res.players || [])
+      .filter(p => p.top8_seat !== null)
+      .sort((a, b) => a.top8_seat - b.top8_seat);
+    
+    if(top8Players.length > 0) {
+      const draftCard = $('<div class="card"/>');
+      draftCard.append($('<div/>').html('<strong>Top 8 Draft Seating</strong>'));
+      
+      const vis = $('<div/>').addClass('draft-table');
+      
+      // Create seat map for easy lookup
+      const seatMap = {};
+      top8Players.forEach(p => { seatMap[p.top8_seat] = p; });
+      
+      // For 8 players: show all 8 seats in a 4x2 grid
+      const topRow = $('<div/>').addClass('draft-row');
+      const bottomRow = $('<div/>').addClass('draft-row');
+      
+      // Top row: 1, 2, 3, 4
+      [1, 2, 3, 4].forEach(seatNum => {
+        const player = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+        seatDiv.append($('<span/>').addClass('name').text(player ? player.name : ''));
+        topRow.append(seatDiv);
+      });
+      
+      // Bottom row: 8, 7, 6, 5 (reverse order)
+      [8, 7, 6, 5].forEach(seatNum => {
+        const player = seatMap[seatNum];
+        const seatDiv = $('<div/>').addClass('seat');
+        seatDiv.append($('<span/>').addClass('pos').text('S'+seatNum));
+        seatDiv.append($('<span/>').addClass('name').text(player ? player.name : ''));
+        bottomRow.append(seatDiv);
+      });
+      
+      vis.append(topRow);
+      vis.append(bottomRow);
+      
+      draftCard.append(vis);
+      top8DraftVisuals.append(draftCard);
+    }
+  }
+
   // Pairings
   if(res.current_round){
     $('#pairingsCard').show(); $('#roundNo').text(getRoundLabel(res.current_round));
@@ -945,6 +1003,7 @@ function render(res){
     });
     $('#finalizeBtn').off('click').on('click',()=> api('finalize_standings',{}).done(load));
     $('#createTop8Btn').off('click').on('click',()=> api('create_top8',{}).done(load));
+    $('#startTop8Btn').off('click').on('click',()=> api('start_top8',{}).done(load));
     
     // Restore focused input if it was being edited
     if (focusedInputInfo) {
@@ -1008,6 +1067,7 @@ function render(res){
   $('#standingsCard').toggle(status==='standings');
   $('#finalStandingsCard').toggle(status==='complete');
   $('#top8CreationCard').toggle(status==='standings');
+  $('#top8DraftCard').toggle(status==='top8_draft');
 
   // Buttons based on status
   $('#startBtn').toggle(status==='pre');

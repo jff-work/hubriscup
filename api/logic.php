@@ -363,7 +363,7 @@ function create_top8(){
     }
   }
   
-  set_setting('status','top8');
+  set_setting('status','top8_draft');
   set_setting('current_round','100');
   return ['ok'=>true];
 }
