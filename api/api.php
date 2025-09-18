@@ -247,8 +247,6 @@ switch($a){
     $isP1 = ($m['p1_id']==$rid);
     $isP2 = ($m['p2_id']==$rid);
     if(!$isP1 && !$isP2) j(['ok'=>false,'error'=>'not your match']);
-    $rp = one("SELECT no_phone FROM players WHERE id=?", [$rid]);
-    if($rp && intval($rp['no_phone'])==1){ j(['ok'=>false,'error'=>'manual_only']); }
     
     // Check if result is already confirmed
     if(intval($m['confirmed'])==1) j(['ok'=>false,'error'=>'result already confirmed']);

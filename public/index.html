@@ -511,7 +511,7 @@ function renderRound(my, round, match, matchState, oppReport){
     const opp = match.is_bye ? 'Bye' : ((match.p1_id==my.id)? match.p2_name : match.p1_name);
     $('#myOpp').text(opp || '-');
     
-    const isManual = !!my.no_phone;
+    const isManual = false; // Manual players can now enter results
     $('#enterBtn').prop('disabled', isManual);
     $('#manualOnlyNote').toggle(isManual);
     
@@ -560,7 +560,6 @@ function renderRound(my, round, match, matchState, oppReport){
     
     // Enter button handler (for initial report)
     $('#enterBtn').off('click').on('click', ()=>{
-      if(isManual) return;
       
       const gy = parseInt($('#gYou').val()||'0',10);
       const go = parseInt($('#gOpp').val()||'0',10);
@@ -587,7 +586,6 @@ function renderRound(my, round, match, matchState, oppReport){
     
     // Confirm button handler
     $('#confirmBtn').off('click').on('click', ()=>{
-      if(isManual) return;
       
       api('confirm_result', {match_id: match.id, confirmer_id: my.id}).done(()=>{
         loadState();
@@ -598,7 +596,6 @@ function renderRound(my, round, match, matchState, oppReport){
     
     // Change button handler
     $('#changeBtn').off('click').on('click', ()=>{
-      if(isManual) return;
       
       // Reset to entry mode
       $('#gYou, #gOpp, #gDraws').prop('disabled', false);
