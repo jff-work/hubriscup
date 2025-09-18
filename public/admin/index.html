@@ -632,7 +632,7 @@ function render(res){
       tr.append($('<td/>').text(m.table_no || '-'));
       const nm = (m.p1_name||'-') + '  vs  ' + (m.p2_name || (m.is_bye?'(BYE)':'-'));
       tr.append($('<td/>').text(nm));
-      const resBox = $('<div/>').addClass('result-input-container').css('display', 'flex').css('flex-direction', 'column').css('align-items', 'center');
+      const resBox = $('<div/>').addClass('result-input-container').css('display', 'flex').css('flex-direction', 'column').css('align-items', 'flex-start');
       if(m.p1_game_wins!=null && m.p2_game_wins!=null){
         // Show existing result with edit button (pencil icon)
         resBox.addClass('has-result');
