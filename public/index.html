@@ -250,8 +250,8 @@ function renderTop8Seat(players, my){
   const leftSide = $('<div/>').addClass('draft-side');
   const rightSide = $('<div/>').addClass('draft-side');
   
-  // Left side: 1, 2, 3, 4
-  [1, 2, 3, 4].forEach(seatNum => {
+  // Left side: 4, 3, 2, 1 (bottom to top)
+  [4, 3, 2, 1].forEach(seatNum => {
     const player = seatMap[seatNum];
     if(player){
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', player.top8_seat==my.top8_seat);
@@ -261,8 +261,8 @@ function renderTop8Seat(players, my){
     }
   });
   
-  // Right side: 8, 7, 6, 5 (reverse order)
-  [8, 7, 6, 5].forEach(seatNum => {
+  // Right side: 5, 6, 7, 8 (bottom to top)
+  [5, 6, 7, 8].forEach(seatNum => {
     const player = seatMap[seatNum];
     if(player){
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', player.top8_seat==my.top8_seat);
@@ -298,8 +298,8 @@ function renderSeat(pods, my){
     const leftSide = $('<div/>').addClass('draft-side');
     const rightSide = $('<div/>').addClass('draft-side');
     
-    // Left side: 1, 2, 3
-    [1, 2, 3].forEach(seatNum => {
+    // Left side: 3, 2, 1 (bottom to top)
+    [3, 2, 1].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -309,8 +309,8 @@ function renderSeat(pods, my){
       }
     });
     
-    // Right side: 6, 5, 4 (reverse order)
-    [6, 5, 4].forEach(seatNum => {
+    // Right side: 4, 5, 6 (bottom to top)
+    [4, 5, 6].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -327,8 +327,8 @@ function renderSeat(pods, my){
     const leftSide = $('<div/>').addClass('draft-side');
     const rightSide = $('<div/>').addClass('draft-side');
     
-    // Left side: 1, 2, 3, 4 - only show occupied seats
-    [1, 2, 3, 4].forEach(seatNum => {
+    // Left side: 4, 3, 2, 1 (bottom to top) - only show occupied seats
+    [4, 3, 2, 1].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -342,8 +342,8 @@ function renderSeat(pods, my){
       }
     });
     
-    // Right side: 8, 7, 6, 5 (reverse order) - only show occupied seats
-    [8, 7, 6, 5].forEach(seatNum => {
+    // Right side: 5, 6, 7, 8 (bottom to top) - only show occupied seats
+    [5, 6, 7, 8].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -364,8 +364,8 @@ function renderSeat(pods, my){
     const leftSide = $('<div/>').addClass('draft-side');
     const rightSide = $('<div/>').addClass('draft-side');
     
-    // Left side: 1, 2, 3, 4
-    [1, 2, 3, 4].forEach(seatNum => {
+    // Left side: 4, 3, 2, 1 (bottom to top)
+    [4, 3, 2, 1].forEach(seatNum => {
       const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
@@ -373,8 +373,8 @@ function renderSeat(pods, my){
       leftSide.append(seatDiv);
     });
     
-    // Right side: 8, 7, 6, 5 (reverse order)
-    [8, 7, 6, 5].forEach(seatNum => {
+    // Right side: 5, 6, 7, 8 (bottom to top)
+    [5, 6, 7, 8].forEach(seatNum => {
       const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
@@ -389,8 +389,8 @@ function renderSeat(pods, my){
     const leftSide = $('<div/>').addClass('draft-side');
     const rightSide = $('<div/>').addClass('draft-side');
     
-    // Left side: 1, 2, 3, 4, 5 - only show occupied seats
-    [1, 2, 3, 4, 5].forEach(seatNum => {
+    // Left side: 5, 4, 3, 2, 1 (bottom to top) - only show occupied seats
+    [5, 4, 3, 2, 1].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -404,8 +404,8 @@ function renderSeat(pods, my){
       }
     });
     
-    // Right side: 10, 9, 8, 7, 6 (reverse order) - only show occupied seats
-    [10, 9, 8, 7, 6].forEach(seatNum => {
+    // Right side: 6, 7, 8, 9, 10 (bottom to top) - only show occupied seats
+    [6, 7, 8, 9, 10].forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
         const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
@@ -426,8 +426,8 @@ function renderSeat(pods, my){
     const leftSide = $('<div/>').addClass('draft-side');
     const rightSide = $('<div/>').addClass('draft-side');
     
-    // Left side: 1, 2, 3, 4, 5
-    [1, 2, 3, 4, 5].forEach(seatNum => {
+    // Left side: 5, 4, 3, 2, 1 (bottom to top)
+    [5, 4, 3, 2, 1].forEach(seatNum => {
       const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
@@ -435,8 +435,8 @@ function renderSeat(pods, my){
       leftSide.append(seatDiv);
     });
     
-    // Right side: 10, 9, 8, 7, 6 (reverse order)
-    [10, 9, 8, 7, 6].forEach(seatNum => {
+    // Right side: 6, 7, 8, 9, 10 (bottom to top)
+    [6, 7, 8, 9, 10].forEach(seatNum => {
       const seat = seatMap[seatNum];
       const seatDiv = $('<div/>').addClass('seat').toggleClass('me', seat.seat==my.pod_seat);
       seatDiv.append($('<span/>').addClass('pos').text('S'+seat.seat));
@@ -457,10 +457,10 @@ function renderSeat(pods, my){
     
     // For odd counts, determine the appropriate layout based on max seats
     const useTenSeatLayout = isOddCount && maxSeats > 8;
-    const leftSeats = useTenSeatLayout ? [1, 2, 3, 4, 5] : [1, 2, 3, 4];
-    const rightSeats = useTenSeatLayout ? [10, 9, 8, 7, 6] : [8, 7, 6, 5];
+    const leftSeats = useTenSeatLayout ? [5, 4, 3, 2, 1] : [4, 3, 2, 1];
+    const rightSeats = useTenSeatLayout ? [6, 7, 8, 9, 10] : [5, 6, 7, 8];
     
-    // Left side: show occupied or placeholder for odd counts
+    // Left side: show occupied or placeholder for odd counts (bottom to top)
     leftSeats.forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
@@ -475,7 +475,7 @@ function renderSeat(pods, my){
       }
     });
     
-    // Right side: show occupied or placeholder for odd counts
+    // Right side: show occupied or placeholder for odd counts (bottom to top)
     rightSeats.forEach(seatNum => {
       const seat = seatMap[seatNum];
       if(seat){
