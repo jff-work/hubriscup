@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # setup_hubriscup.sh
-# Usage: bash setup_hubriscup.sh <DOMAIN> <EMAIL>
+# Usage: Run this script from the hubriscup project directory
+# bash setup_hubriscup.sh <DOMAIN> <EMAIL>
 # Example: bash setup_hubriscup.sh hubriscup.ch you@example.com
 set -euo pipefail
 
 DOMAIN="${1:-}"
 EMAIL="${2:-}"
-ZIP_SRC="/root/hubriscup.zip"         # adjust if you uploaded elsewhere
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  # Directory where this script is located
 APP_ROOT="/var/www/hubriscup"
 WEB_ROOT="${APP_ROOT}/public"
 APP_USER="www-data"
@@ -18,31 +19,25 @@ if [[ -z "${DOMAIN}" || -z "${EMAIL}" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${ZIP_SRC}" ]]; then
-  echo "Missing ${ZIP_SRC}. Upload your hubriscup.zip to ${ZIP_SRC} and re-run."
+if [[ ! -d "${SCRIPT_DIR}" ]]; then
+  echo "Cannot determine script directory. Ensure the script is in the hubriscup project root."
   exit 1
 fi
 
 echo "[1/9] Updating apt and installing packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y nginx unzip ufw software-properties-common
+apt-get install -y nginx ufw software-properties-common rsync
 
 # Install PHP + SQLite; use distro default PHP (22.04=8.1, 24.04=8.3)
 apt-get install -y php-fpm php-cli php-sqlite3 php-zip php-curl php-mbstring
 
-echo "[2/9] Unpacking app to ${APP_ROOT}..."
+echo "[2/9] Copying app from ${SCRIPT_DIR} to ${APP_ROOT}..."
 rm -rf "${APP_ROOT}"
 mkdir -p "${APP_ROOT}"
-unzip -q "${ZIP_SRC}" -d /tmp/hubriscup_unpack
 
-# handle common zip structures: either top-level 'hubriscup/' or files directly
-if [[ -d /tmp/hubriscup_unpack/hubriscup ]]; then
-  rsync -a /tmp/hubriscup_unpack/hubriscup/ "${APP_ROOT}/"
-else
-  rsync -a /tmp/hubriscup_unpack/ "${APP_ROOT}/"
-fi
-rm -rf /tmp/hubriscup_unpack
+# Copy all files from the script directory (current project directory) to APP_ROOT
+rsync -a "${SCRIPT_DIR}/" "${APP_ROOT}/" --exclude='.git' --exclude='*.zip' --exclude='setup_hubriscup.sh'
 
 # Ensure docroot exists
 mkdir -p "${WEB_ROOT}"
