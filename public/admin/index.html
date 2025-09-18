@@ -98,6 +98,47 @@
       padding: 15px 20px;
       border-top: 1px solid var(--border);
     }
+    
+    /* Debug toggle styles */
+    .topbar {
+      position: relative;
+    }
+    
+    .debug-toggle {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      z-index: 100;
+    }
+    
+    .debug-btn {
+      background: var(--border);
+      border: 1px solid var(--accent);
+      color: var(--ink);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    
+    .debug-btn:hover {
+      background: var(--accent);
+      color: var(--card);
+    }
+    
+    .debug-btn.active {
+      background: var(--accent);
+      color: var(--card);
+      box-shadow: 0 0 5px rgba(255, 165, 0, 0.5);
+    }
+    
+    /* Hidden debug elements */
+    .debug-hidden {
+      display: none !important;
+    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="/assets/js/i18n.js"></script>
@@ -109,7 +150,7 @@
         <span class="badge">Admin</span>
       </div>
       <div class="flex">
-        <button class="ghost" id="newEventBtn"><span data-i18n="newEvent"></span></button>
+        <button class="ghost debug-hidden" id="newEventBtn"><span data-i18n="newEvent"></span></button>
         <label class="lang-toggle small">
           <span data-i18n="locale"></span>:
           <select id="langSel">
@@ -117,6 +158,9 @@
             <option value="en">English</option>
           </select>
         </label>
+      </div>
+      <div class="debug-toggle">
+        <button class="debug-btn" id="debugToggleBtn">DEBUG</button>
       </div>
     </div>
   </div>
@@ -281,7 +325,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card debug-hidden" id="debugCard">
       <div class="flex"><strong data-i18n="debug"></strong></div>
       <div class="grid three">
         <div class="stack">
@@ -1082,9 +1126,51 @@ function render(res){
   $('#dbgRandom').off('click').on('click',()=> api('debug_randomize_results',{}).done(load));
 }
 
+// Debug toggle functionality
+let debugMode = false;
+
+function toggleDebugMode() {
+  debugMode = !debugMode;
+  const debugToggleBtn = $('#debugToggleBtn');
+  
+  if (debugMode) {
+    debugToggleBtn.addClass('active');
+    // Show debug elements by removing the class and making them visible
+    $('#newEventBtn').removeClass('debug-hidden').show();
+    $('#debugCard').removeClass('debug-hidden').show();
+  } else {
+    debugToggleBtn.removeClass('active');
+    // Hide debug elements by adding the class and hiding them
+    $('#newEventBtn').addClass('debug-hidden').hide();
+    $('#debugCard').addClass('debug-hidden').hide();
+  }
+}
+
+// Initialize debug toggle
+$(document).ready(function() {
+  $('#debugToggleBtn').off('click').on('click', toggleDebugMode);
+  
+  // Initialize debug mode as hidden
+  debugMode = false;
+  $('#newEventBtn').addClass('debug-hidden').hide();
+  $('#debugCard').addClass('debug-hidden').hide();
+});
+
 
 setInterval(load, 3000);
 load();
+
+// Ensure debug toggle is properly initialized after page load
+$(document).ready(function() {
+  setTimeout(function() {
+    $('#debugToggleBtn').off('click').on('click', toggleDebugMode);
+    // Ensure debug elements start hidden
+    if (!debugMode) {
+      $('#newEventBtn').addClass('debug-hidden').hide();
+      $('#debugCard').addClass('debug-hidden').hide();
+    }
+  }, 100);
+});
 </script>
 </body>
 </html>
