@@ -185,8 +185,12 @@
             <thead>
               <tr>
                 <th data-i18n="table"></th>
-                <th data-i18n="players"></th>
-                <th data-i18n="result"></th>
+                <th>Player 1</th>
+                <th>Score 1</th>
+                <th>VS</th>
+                <th>Player 2</th>
+                <th>Score 2</th>
+                <th>Draws</th>
                 <th>Confirmed</th>
               </tr>
             </thead>
@@ -766,59 +770,71 @@ function render(res){
     (res.matches||[]).forEach((m,idx)=>{
       const tr = $('<tr/>').data('match-id', m.id);
       tr.append($('<td/>').text(m.table_no || '-'));
-      const nm = (m.p1_name||'-') + '  vs  ' + (m.p2_name || (m.is_bye?'(BYE)':'-'));
-      tr.append($('<td/>').text(nm));
-      const resBox = $('<div/>').addClass('result-input-container').css('display', 'flex').css('flex-direction', 'column').css('align-items', 'flex-start');
-      if(m.p1_game_wins!=null && m.p2_game_wins!=null){
-        // Show existing result with edit button (pencil icon)
-        resBox.addClass('has-result');
-        const resultRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px').css('opacity', '0.7');
-        const resultSpan = $('<span/>').text(m.p1_game_wins + ' – ' + m.p2_game_wins + ' – ' + (m.draws || 0));
-        const editBtn = $('<button class="ghost small-btn"/>').html('✏️').css('font-size', '12px').on('click', function(){
-          // Replace with input boxes
-          const container = $(this).closest('.result-input-container');
-          container.empty();
-          
-          const inputRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px');
-          const p1Input = $('<input type="number" class="result-input" min="0" max="2" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;"/>').val(m.p1_game_wins);
-          const p2Input = $('<input type="number" class="result-input" min="0" max="2" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;"/>').val(m.p2_game_wins);
-          const drawsInput = $('<input type="number" class="result-input" min="0" max="3" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;"/>').val(m.draws || 0);
-          const saveBtn = $('<button class="ghost small-btn"/>').text('✓').on('click', function(){
-            const p1Wins = parseInt(p1Input.val()) || 0;
-            const p2Wins = parseInt(p2Input.val()) || 0;
-            const draws = parseInt(drawsInput.val()) || 0;
-            
-            // Basic validation - prevent obviously invalid results
-            if (p1Wins < 0 || p1Wins > 2 || p2Wins < 0 || p2Wins > 2 || draws < 0 || draws > 3) {
-              alert('Invalid result. Game wins must be between 0 and 2, draws between 0 and 3.');
-              return;
-            }
-            
-            api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
-          });
-          const cancelBtn = $('<button class="ghost small-btn"/>').text('✗').on('click', function(){
-            load(); // Reload to show original state
-          });
-          
-          inputRow.append(p1Input).append(' – ').append(p2Input).append(' – ').append(drawsInput).append(' ').append(saveBtn).append(' ').append(cancelBtn);
-          container.append(inputRow);
+      
+      // Player 1 column
+      tr.append($('<td/>').text(m.p1_name || '-'));
+      
+      // Score 1 column
+      const score1Cell = $('<td/>');
+      const score1Input = $('<input type="number" class="result-input" min="0" max="2" style="width:50px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>');
+      if(m.p1_game_wins != null) {
+        score1Input.val(m.p1_game_wins);
+      }
+      if(m.confirmed) {
+        // Make confirmed input disabled and greyed out
+        score1Input.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+      }
+      score1Cell.append(score1Input);
+      tr.append(score1Cell);
+      
+      // VS column
+      tr.append($('<td/>').text('VS'));
+      
+      // Player 2 column
+      tr.append($('<td/>').text(m.p2_name || (m.is_bye?'(BYE)':'-')));
+      
+      // Score 2 column
+      const score2Cell = $('<td/>');
+      const score2Input = $('<input type="number" class="result-input" min="0" max="2" style="width:50px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>');
+      if(m.p2_game_wins != null) {
+        score2Input.val(m.p2_game_wins);
+      }
+      if(m.confirmed) {
+        // Make confirmed input disabled and greyed out
+        score2Input.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+      }
+      score2Cell.append(score2Input);
+      tr.append(score2Cell);
+      
+      // Draws column
+      const drawsCell = $('<td/>');
+      const drawsInput = $('<input type="number" class="result-input" min="0" max="3" style="width:50px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>');
+      if(m.draws != null) {
+        drawsInput.val(m.draws);
+      }
+      if(m.confirmed) {
+        // Make confirmed input disabled and greyed out
+        drawsInput.prop('disabled', true).css('opacity', '0.5').css('background', '#1a1a1a').css('color', '#666');
+      }
+      drawsCell.append(drawsInput);
+      tr.append(drawsCell);
+      
+      // Add event handlers for the input fields (only for non-confirmed results)
+      if(!m.confirmed) {
+        score1Input.on('change', function() {
+          updateResult(m.id);
+        });
+        score2Input.on('change', function() {
+          updateResult(m.id);
+        });
+        drawsInput.on('change', function() {
+          updateResult(m.id);
         });
         
-        resultRow.append(resultSpan).append(' ').append(editBtn);
-        resBox.append(resultRow);
-      } else {
-        // Show input boxes for entering new result
-        const inputRow = $('<div/>').css('display', 'flex').css('align-items', 'center').css('gap', '5px');
-        
-        // Check if we have preserved values for this match
-        const preserved = preservedInputs[m.id] || {};
-        
-        const p1Input = $('<input type="number" class="result-input" min="0" max="2" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>').val(preserved.p1 || '');
-        const p2Input = $('<input type="number" class="result-input" min="0" max="2" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>').val(preserved.p2 || '');
-        const drawsInput = $('<input type="number" class="result-input" min="0" max="3" style="width:40px; background:#0f1318; border:1px solid #1f2a38; color:#e7edf4; padding:4px; border-radius:4px; text-align:center;" placeholder="0"/>').val(preserved.draws || '');
-        const checkBtn = $('<button class="ghost small-btn"/>').text('✓').on('click', function(){
-          const p1Wins = parseInt(p1Input.val()) || 0;
-          const p2Wins = parseInt(p2Input.val()) || 0;
+        // Function to update result
+        function updateResult(matchId) {
+          const p1Wins = parseInt(score1Input.val()) || 0;
+          const p2Wins = parseInt(score2Input.val()) || 0;
           const draws = parseInt(drawsInput.val()) || 0;
           
           // Basic validation - prevent obviously invalid results
@@ -827,13 +843,9 @@ function render(res){
             return;
           }
           
-          api('admin_edit_result', {match_id: m.id, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
-        });
-        
-        inputRow.append(p1Input).append(' – ').append(p2Input).append(' – ').append(drawsInput).append(' ').append(checkBtn);
-        resBox.append(inputRow);
+          api('admin_edit_result', {match_id: matchId, p1: p1Wins, p2: p2Wins, draws: draws}).done(load);
+        }
       }
-      tr.append($('<td/>').append(resBox));
       
       // Confirmed column
       const confirmedCell = $('<td/>');
