@@ -976,8 +976,12 @@ function render(res){
   $('#startBtn').toggle(status==='pre');
   $('#podsBtn').toggle(status==='checkin');
   $('#r1Btn').toggle(status==='pods');
-  $('#nextRoundBtn').toggle(status==='round' || status==='top8');
-  $('#finalizeBtn').toggle(status==='round' && res.settings.current_round >= res.settings.total_rounds);
+  
+  // Show final standings button when it's the last round, otherwise show next round button
+  const isLastRound = status==='round' && res.settings.current_round >= res.settings.total_rounds;
+  $('#finalizeBtn').toggle(isLastRound);
+  $('#nextRoundBtn').toggle((status==='round' || status==='top8') && !isLastRound);
+  
   $('#createTop8Btn').toggle(status==='standings');
 
   // Debug
