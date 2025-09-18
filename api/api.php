@@ -344,9 +344,44 @@ switch($a){
       }
     }
     
+    // Special handling for Top 8 players
+    $wasInTop8 = false;
+    if($player['top8_seat'] !== null) {
+      $wasInTop8 = true;
+      
+      // If already in Top 8 phase, prevent dropping unless admin explicitly allows it
+      if(in_array($status, ['top8_draft', 'top8'])) {
+        // Check if there are any Top 8 matches that have been created
+        $top8_matches = all("SELECT * FROM matches WHERE round >= 100");
+        if(count($top8_matches) > 0) {
+          j(['ok'=>false,'error'=>'Cannot drop player after Top 8 matches have been created. Contact tournament organizer if this player must be removed.']);
+        }
+      }
+      
+      // Clear their Top 8 seat when dropping
+      q("UPDATE players SET top8_seat=NULL WHERE id=?", [$pid]);
+    }
+    
     // Drop the player
     q("UPDATE players SET dropped=1, updated_at=? WHERE id=?", [date('c'),$pid]);
-    j(['ok'=>true,'message'=>'Player dropped successfully']);
+    
+    // If this was a Top 8 player and we're before Top 8 phase, we might need to reassign Top 8
+    $message = 'Player dropped successfully';
+    if($wasInTop8 && !in_array($status, ['top8_draft', 'top8'])) {
+      $message .= '. Next player will be promoted to Top 8 when standings are recalculated.';
+    } else if($wasInTop8 && $status === 'top8_draft') {
+      // Automatically refresh Top 8 if we're in draft phase and no matches created yet
+      $refresh_result = refresh_top8_if_needed();
+      if($refresh_result['ok']) {
+        $message .= '. Top 8 assignments have been automatically updated with the next player.';
+      } else {
+        $message .= '. Top 8 seat cleared. You may need to manually refresh Top 8 bracket.';
+      }
+    } else if($wasInTop8) {
+      $message .= '. Top 8 seat cleared. You may need to manually adjust Top 8 bracket.';
+    }
+    
+    j(['ok'=>true,'message'=>$message]);
     break;
 
   case 'next_round':
@@ -372,6 +407,10 @@ switch($a){
 
   case 'create_top8':
     j(create_top8());
+    break;
+
+  case 'refresh_top8':
+    j(refresh_top8_if_needed());
     break;
 
   case 'start_top8':

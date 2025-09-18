@@ -364,6 +364,7 @@
       <div class="flex"><strong>Top 8 Draft</strong></div>
       <div id="top8DraftVisuals" class="stack" style="margin-top:15px"></div>
       <div class="center" style="margin-top:15px">
+        <button id="refreshTop8Btn" class="secondary" style="margin-right:10px">Refresh Top 8 Assignments</button>
         <button id="startTop8Btn" class="btn"><span data-i18n="startTop8"></span></button>
       </div>
     </div>
@@ -479,10 +480,15 @@ function renderAdminRoundStandings(stand){
     const player = (lastState?.players || []).find(p => p.id === r.id);
     const isDropped = player && player.dropped;
     
-    if (!isDropped && idx >= 8) {
-      // Only show drop button for players not in top 8 and not already dropped
+    if (!isDropped) {
+      // Show drop button for all non-dropped players
+      const isTop8 = idx < 8;
+      const dropMsg = isTop8 
+        ? `Drop ${r.name} from the tournament? This will remove them from Top 8 and promote the next player.`
+        : `Drop ${r.name} from the tournament? The next player will move up in standings.`;
+      
       const dropBtn = $('<button class="ghost small-btn"/>').text('Drop').on('click', function(){
-        if (confirm(`Drop ${r.name} from the tournament? The next player will move up in standings.`)) {
+        if (confirm(dropMsg)) {
           api('drop_player', {player_id: r.id}).done(function(response) {
             if (response.ok) {
               load(); // Refresh to update standings
@@ -495,10 +501,13 @@ function renderAdminRoundStandings(stand){
         }
       });
       actionsCell.append(dropBtn);
+      
+      // Add badge to show current status
+      if (isTop8) {
+        actionsCell.append(' ').append($('<span class="badge green"/>').text('Top 8'));
+      }
     } else if (isDropped) {
       actionsCell.append($('<span class="badge orange"/>').text('Dropped'));
-    } else if (idx < 8) {
-      actionsCell.append($('<span class="badge green"/>').text('Top 8'));
     }
     
     tr.append(actionsCell);
@@ -1246,6 +1255,20 @@ function render(res){
     });
     $('#finalizeBtn').off('click').on('click',()=> api('finalize_standings',{}).done(load));
     $('#createTop8Btn').off('click').on('click',()=> api('create_top8',{}).done(load));
+    $('#refreshTop8Btn').off('click').on('click',()=> {
+      if(confirm('Refresh Top 8 assignments based on current standings? This will update the draft seating.')) {
+        api('refresh_top8',{}).done(function(response) {
+          if(response.ok) {
+            alert(response.message || 'Top 8 assignments refreshed successfully');
+            load();
+          } else {
+            alert('Error: ' + (response.error || 'Failed to refresh Top 8'));
+          }
+        }).fail(function() {
+          alert('Network error: Failed to refresh Top 8');
+        });
+      }
+    });
     $('#startTop8Btn').off('click').on('click',()=> api('start_top8',{}).done(load));
     
     // Restore focused input if it was being edited
@@ -1289,10 +1312,15 @@ function render(res){
         const player = (res.players || []).find(p => p.id === r.id);
         const isDropped = player && player.dropped;
         
-        if (!isDropped && idx >= 8) {
-          // Only show drop button for players not in top 8 and not already dropped
+        if (!isDropped) {
+          // Show drop button for all non-dropped players
+          const isTop8 = idx < 8;
+          const dropMsg = isTop8 
+            ? `Drop ${r.name} from the tournament? This will remove them from Top 8 and promote the next player.`
+            : `Drop ${r.name} from the tournament? The next player will move up in standings.`;
+          
           const dropBtn = $('<button class="ghost small-btn"/>').text('Drop').on('click', function(){
-            if (confirm(`Drop ${r.name} from the tournament? The next player will move up in standings.`)) {
+            if (confirm(dropMsg)) {
               api('drop_player', {player_id: r.id}).done(function(response) {
                 if (response.ok) {
                   load(); // Refresh to update standings
@@ -1305,10 +1333,13 @@ function render(res){
             }
           });
           actionsCell.append(dropBtn);
+          
+          // Add badge to show current status
+          if (isTop8) {
+            actionsCell.append(' ').append($('<span class="badge green"/>').text('Top 8'));
+          }
         } else if (isDropped) {
           actionsCell.append($('<span class="badge orange"/>').text('Dropped'));
-        } else if (idx < 8) {
-          actionsCell.append($('<span class="badge green"/>').text('Top 8'));
         }
         
         tr.append(actionsCell);

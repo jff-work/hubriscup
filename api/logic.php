@@ -353,6 +353,9 @@ function create_top8(){
   $top = array_slice($stand,0,8);
   if(count($top)<8) return ['ok'=>false,'error'=>'Need 8 players'];
   
+  // Clear any existing top8_seat assignments
+  q("UPDATE players SET top8_seat=NULL");
+  
   // Random seating for Top 8 draft
   $seats = range(1,8); 
   shuffle($seats);
@@ -378,6 +381,33 @@ function create_top8(){
   set_setting('status','top8_draft');
   set_setting('current_round','100');
   return ['ok'=>true];
+}
+
+function refresh_top8_if_needed(){
+  // This function can be called after dropping a player to refresh Top 8 assignments
+  // Only works if Top 8 hasn't started yet (no matches created)
+  $status = get_setting('status');
+  if($status !== 'top8_draft') return ['ok'=>false,'error'=>'Not in Top 8 draft phase'];
+  
+  $top8_matches = all("SELECT * FROM matches WHERE round >= 100");
+  if(count($top8_matches) > 0) return ['ok'=>false,'error'=>'Top 8 matches already created'];
+  
+  // Get current standings and update Top 8 seats
+  $stand = standings(null);
+  $top = array_slice($stand,0,8);
+  if(count($top)<8) return ['ok'=>false,'error'=>'Not enough players for Top 8'];
+  
+  // Clear existing assignments
+  q("UPDATE players SET top8_seat=NULL");
+  
+  // Reassign based on current standings (keep same random order concept but with current top 8)
+  $seats = range(1,8); 
+  shuffle($seats);
+  foreach($top as $i=>$row){ 
+    q("UPDATE players SET top8_seat=? WHERE id=?", [$seats[$i], $row['id']]); 
+  }
+  
+  return ['ok'=>true,'message'=>'Top 8 assignments refreshed'];
 }
 
 function advance_top8(){
