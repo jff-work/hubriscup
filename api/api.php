@@ -202,6 +202,9 @@ switch($a){
     break;
 
   case 'new_event':
+    // Auto-save current state before clearing everything
+    save_current_state("Before New Event", "Auto-saved before starting a new event");
+    
     // Clear all data and reset to preparation stage
     q("DELETE FROM players");
     q("DELETE FROM matches");
@@ -402,6 +405,32 @@ switch($a){
       q("UPDATE matches SET p1_game_wins=?, p2_game_wins=?, p1_reported=1, p2_reported=1, confirmed=1 WHERE id=?", [$r[0],$r[1],$m['id']]);
     }
     j(['ok'=>true]);
+    break;
+
+  case 'save_state':
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $res = save_current_state($name ?: null, $description ?: null);
+    j($res);
+    break;
+
+  case 'load_state':
+    $state_id = intv($_POST['state_id'] ?? 0);
+    if($state_id <= 0) j(['ok'=>false,'error'=>'Invalid state ID']);
+    $res = load_saved_state($state_id);
+    j($res);
+    break;
+
+  case 'get_saved_states':
+    $states = get_saved_states();
+    j(['ok'=>true, 'states'=>$states]);
+    break;
+
+  case 'delete_saved_state':
+    $state_id = intv($_POST['state_id'] ?? 0);
+    if($state_id <= 0) j(['ok'=>false,'error'=>'Invalid state ID']);
+    $res = delete_saved_state($state_id);
+    j($res);
     break;
 
   default:

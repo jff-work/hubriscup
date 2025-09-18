@@ -56,6 +56,13 @@ function init_schema($pdo){
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS saved_states (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    state_data TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
   ");
   // Backfill/migrate columns if needed
   try {

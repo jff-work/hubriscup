@@ -71,6 +71,9 @@ function search_sizes($n, $allowed){
 }
 
 function assign_pods(){
+  // Auto-save current state before creating pods
+  save_current_state("Before Pods Assignment", "Auto-saved before assigning pods");
+  
   $players = checked_in_players();
   $n = count($players);
   if($n < 6) return ['ok'=>false,'error'=>'Need at least 6 checked-in players'];
@@ -180,6 +183,9 @@ function rematch($a,$b,$round){
 
 /** Round creation **/
 function create_round1(){
+  // Auto-save current state before creating first round
+  save_current_state("Before Round 1", "Auto-saved before creating first round");
+  
   $pods = all("SELECT DISTINCT pod FROM players WHERE pod IS NOT NULL ORDER BY pod ASC");
   if(!$pods) return ['ok'=>false,'error'=>'No pods'];
   q("DELETE FROM matches WHERE round=1");
@@ -204,6 +210,9 @@ function create_round1(){
 }
 
 function create_round($round){
+  // Auto-save current state before creating new round
+  save_current_state("Before Round $round", "Auto-saved before creating round $round");
+  
   q("DELETE FROM matches WHERE round=?", [$round]);
   $players = all("SELECT * FROM players WHERE active=1 AND dropped=0");
   $table = 1;
@@ -337,6 +346,9 @@ function compute_total_rounds(){
 }
 
 function create_top8(){
+  // Auto-save current state before creating Top 8
+  save_current_state("Before Top 8", "Auto-saved before creating Top 8 bracket");
+  
   $stand = standings(null);
   $top = array_slice($stand,0,8);
   if(count($top)<8) return ['ok'=>false,'error'=>'Need 8 players'];
@@ -398,4 +410,83 @@ function winner_of($m){
   if($m['is_bye']) return $m['p1_id'];
   return ($m['p1_game_wins'] > $m['p2_game_wins']) ? $m['p1_id'] :
          (($m['p2_game_wins'] > $m['p1_game_wins']) ? $m['p2_id'] : $m['p1_id']);
+}
+
+/** Event State Management **/
+function save_current_state($name = null, $description = null){
+  // Generate automatic name if not provided
+  if(!$name){
+    $status = get_setting('status');
+    $round = get_setting('current_round');
+    $timestamp = date('Y-m-d H:i:s');
+    
+    if($status === 'pre') $name = "Pre-tournament - $timestamp";
+    elseif($status === 'checkin') $name = "Check-in - $timestamp";
+    elseif($status === 'pods') $name = "Pods - $timestamp";
+    elseif($status === 'round') $name = "Round $round - $timestamp";
+    elseif($status === 'top8_draft') $name = "Top 8 Draft - $timestamp";
+    elseif($status === 'top8') $name = "Top 8 Round $round - $timestamp";
+    elseif($status === 'standings') $name = "Final Standings - $timestamp";
+    elseif($status === 'complete') $name = "Tournament Complete - $timestamp";
+    else $name = "State - $timestamp";
+  }
+  
+  // Create state data object
+  $state = [
+    'settings' => all("SELECT * FROM settings"),
+    'players' => all("SELECT * FROM players"),
+    'matches' => all("SELECT * FROM matches"),
+    'saved_at' => date('c')
+  ];
+  
+  // Save to database
+  q("INSERT INTO saved_states (name, description, state_data, created_at) VALUES (?, ?, ?, ?)", 
+    [$name, $description, json_encode($state), date('c')]);
+  
+  return ['ok' => true, 'name' => $name];
+}
+
+function load_saved_state($state_id){
+  $saved = one("SELECT * FROM saved_states WHERE id=?", [$state_id]);
+  if(!$saved) return ['ok' => false, 'error' => 'State not found'];
+  
+  $state = json_decode($saved['state_data'], true);
+  if(!$state) return ['ok' => false, 'error' => 'Invalid state data'];
+  
+  // Clear current data
+  q("DELETE FROM players");
+  q("DELETE FROM matches");
+  q("DELETE FROM settings");
+  
+  // Restore settings
+  foreach($state['settings'] as $setting){
+    q("INSERT INTO settings (key, value) VALUES (?, ?)", [$setting['key'], $setting['value']]);
+  }
+  
+  // Restore players
+  foreach($state['players'] as $player){
+    $columns = array_keys($player);
+    $placeholders = str_repeat('?,', count($columns) - 1) . '?';
+    $sql = "INSERT INTO players (" . implode(',', $columns) . ") VALUES ($placeholders)";
+    q($sql, array_values($player));
+  }
+  
+  // Restore matches
+  foreach($state['matches'] as $match){
+    $columns = array_keys($match);
+    $placeholders = str_repeat('?,', count($columns) - 1) . '?';
+    $sql = "INSERT INTO matches (" . implode(',', $columns) . ") VALUES ($placeholders)";
+    q($sql, array_values($match));
+  }
+  
+  return ['ok' => true, 'loaded_state' => $saved['name']];
+}
+
+function get_saved_states(){
+  return all("SELECT id, name, description, created_at FROM saved_states ORDER BY created_at DESC");
+}
+
+function delete_saved_state($state_id){
+  $affected = q("DELETE FROM saved_states WHERE id=?", [$state_id])->rowCount();
+  return ['ok' => $affected > 0, 'deleted' => $affected > 0];
 }

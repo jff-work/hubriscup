@@ -139,6 +139,44 @@
     .debug-hidden {
       display: none !important;
     }
+    
+    /* Saved states list styles */
+    .saved-state-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--border);
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+    }
+    
+    .saved-state-info {
+      flex: 1;
+    }
+    
+    .saved-state-name {
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    
+    .saved-state-meta {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .saved-state-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .saved-state-actions button {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
   </style>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="/assets/js/i18n.js"></script>
@@ -151,6 +189,7 @@
       </div>
       <div class="flex">
         <button class="ghost debug-hidden" id="newEventBtn"><span data-i18n="newEvent"></span></button>
+        <button class="ghost debug-hidden" id="loadEventBtn">Load Previous Event</button>
         <label class="lang-toggle small">
           <span data-i18n="locale"></span>:
           <select id="langSel">
@@ -365,6 +404,30 @@
     </div>
   </div>
 
+  <!-- Load State Popup -->
+  <div id="loadStatePopup" class="popup-overlay" style="display:none;">
+    <div class="popup-content">
+      <div class="popup-header">
+        <h3>Load Previous Event State</h3>
+        <button id="closeLoadStatePopup" class="close-btn">&times;</button>
+      </div>
+      <div class="popup-body">
+        <div class="small" style="margin-bottom:15px; color:#ff6b6b;">
+          <strong>Warning:</strong> Loading a previous state will completely replace the current tournament data!
+        </div>
+        <div id="savedStatesList" style="max-height:300px; overflow-y:auto;">
+          <!-- States will be loaded here -->
+        </div>
+        <div id="noStatesMessage" style="text-align:center; color:#666; padding:20px; display:none;">
+          No saved states found.
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button id="cancelLoadState" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 function applyI18N(){
   $('[data-i18n]').each(function(){ const k=$(this).data('i18n'); $(this).text(I18N.t(k)); });
@@ -539,6 +602,7 @@ function render(res){
       api('new_event', {}).done(load);
     }
   });
+  $('#loadEventBtn').off('click').on('click', showLoadStateModal);
 
   // Pods
   $('#podsBtn').off('click').on('click',()=>{
@@ -1159,11 +1223,13 @@ function toggleDebugMode() {
     debugToggleBtn.addClass('active');
     // Show debug elements by removing the class and making them visible
     $('#newEventBtn').removeClass('debug-hidden').show();
+    $('#loadEventBtn').removeClass('debug-hidden').show();
     $('#debugCard').removeClass('debug-hidden').show();
   } else {
     debugToggleBtn.removeClass('active');
     // Hide debug elements by adding the class and hiding them
     $('#newEventBtn').addClass('debug-hidden').hide();
+    $('#loadEventBtn').addClass('debug-hidden').hide();
     $('#debugCard').addClass('debug-hidden').hide();
   }
 }
@@ -1175,6 +1241,7 @@ $(document).ready(function() {
   // Initialize debug mode as hidden
   debugMode = false;
   $('#newEventBtn').addClass('debug-hidden').hide();
+  $('#loadEventBtn').addClass('debug-hidden').hide();
   $('#debugCard').addClass('debug-hidden').hide();
 });
 
@@ -1189,9 +1256,116 @@ $(document).ready(function() {
     // Ensure debug elements start hidden
     if (!debugMode) {
       $('#newEventBtn').addClass('debug-hidden').hide();
+      $('#loadEventBtn').addClass('debug-hidden').hide();
       $('#debugCard').addClass('debug-hidden').hide();
     }
   }, 100);
+});
+
+// State Management Functions
+function showLoadStateModal() {
+  $('#loadStatePopup').show();
+  loadSavedStatesList();
+}
+
+function loadSavedStatesList() {
+  api('get_saved_states', {}).done(function(res) {
+    const container = $('#savedStatesList');
+    const noStatesMsg = $('#noStatesMessage');
+    
+    container.empty();
+    
+    if (res.ok && res.states && res.states.length > 0) {
+      noStatesMsg.hide();
+      container.show();
+      
+      res.states.forEach(function(state) {
+        const item = $('<div class="saved-state-item">');
+        
+        const info = $('<div class="saved-state-info">');
+        info.append('<div class="saved-state-name">' + escapeHtml(state.name) + '</div>');
+        
+        const meta = $('<div class="saved-state-meta">');
+        meta.text('Created: ' + new Date(state.created_at).toLocaleString());
+        if (state.description) {
+          meta.append('<br>' + escapeHtml(state.description));
+        }
+        info.append(meta);
+        
+        const actions = $('<div class="saved-state-actions">');
+        const loadBtn = $('<button class="btn small">Load</button>');
+        const deleteBtn = $('<button class="secondary small">Delete</button>');
+        
+        loadBtn.on('click', function() {
+          if (confirm('Are you sure you want to load this state? This will replace all current tournament data!')) {
+            loadSavedState(state.id);
+          }
+        });
+        
+        deleteBtn.on('click', function() {
+          if (confirm('Are you sure you want to delete this saved state? This action cannot be undone!')) {
+            deleteSavedState(state.id);
+          }
+        });
+        
+        actions.append(loadBtn);
+        actions.append(deleteBtn);
+        
+        item.append(info);
+        item.append(actions);
+        container.append(item);
+      });
+    } else {
+      container.hide();
+      noStatesMsg.show();
+    }
+  }).fail(function() {
+    alert('Failed to load saved states.');
+  });
+}
+
+function loadSavedState(stateId) {
+  api('load_state', {state_id: stateId}).done(function(res) {
+    if (res.ok) {
+      alert('State loaded successfully: ' + res.loaded_state);
+      $('#loadStatePopup').hide();
+      load(); // Reload the admin interface
+    } else {
+      alert('Failed to load state: ' + (res.error || 'Unknown error'));
+    }
+  }).fail(function() {
+    alert('Failed to load state.');
+  });
+}
+
+function deleteSavedState(stateId) {
+  api('delete_saved_state', {state_id: stateId}).done(function(res) {
+    if (res.ok) {
+      loadSavedStatesList(); // Refresh the list
+    } else {
+      alert('Failed to delete state.');
+    }
+  }).fail(function() {
+    alert('Failed to delete state.');
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Modal close handlers
+$('#closeLoadStatePopup, #cancelLoadState').on('click', function() {
+  $('#loadStatePopup').hide();
+});
+
+// Close modals when clicking outside
+$('.popup-overlay').on('click', function(e) {
+  if (e.target === this) {
+    $(this).hide();
+  }
 });
 </script>
 </body>
