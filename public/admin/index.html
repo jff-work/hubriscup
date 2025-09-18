@@ -296,16 +296,8 @@
           <button id="dbgCheckin">Go</button>
         </div>
         <div class="stack">
-          <div class="small" data-i18n="copyResults"></div>
-          <button id="dbgCopy">Go</button>
-        </div>
-        <div class="stack">
           <div class="small" data-i18n="randomize"></div>
           <button id="dbgRandom">Go</button>
-        </div>
-        <div class="stack">
-          <div class="small" data-i18n="newEvent"></div>
-          <button id="dbgNewEvent" class="secondary">Reset All</button>
         </div>
       </div>
     </div>
@@ -1087,13 +1079,7 @@ function render(res){
     api('debug_populate',{n}).done(load);
   });
   $('#dbgCheckin').off('click').on('click',()=> api('debug_checkin_remaining',{}).done(load));
-  $('#dbgCopy').off('click').on('click',()=> api('debug_copy_results',{}).done(load));
   $('#dbgRandom').off('click').on('click',()=> api('debug_randomize_results',{}).done(load));
-  $('#dbgNewEvent').off('click').on('click',()=>{
-    if(confirm(I18N.t('confirmNewEvent'))) {
-      api('new_event', {}).done(load);
-    }
-  });
 }
 
 
